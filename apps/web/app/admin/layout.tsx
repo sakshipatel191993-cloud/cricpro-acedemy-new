@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { AdminNav } from '@/components/admin/admin-nav';
 
 export const metadata: Metadata = {
-  title: 'Admin Dashboard | Next Gen Cricket Academy',
+  title: 'Admin Dashboard | Cricpro Centre of Excellence',
   description: 'Manage bookings, resources, and inquiries',
 };
 

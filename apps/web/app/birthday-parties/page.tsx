@@ -23,7 +23,7 @@ import {
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Birthday Parties | Next Gen Cricket Academy",
+  title: "Birthday Parties | Cricpro Centre of Excellence",
   description:
     "Cricket-themed birthday parties for kids. Active, fun-filled celebrations in our professional indoor facility. Up to 20 guests.",
 }

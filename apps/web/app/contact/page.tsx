@@ -29,9 +29,9 @@ import {
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Contact Us | Next Gen Cricket Academy",
+  title: "Contact Us | Cricpro Centre of Excellence",
   description:
-    "Get in touch with Next Gen Cricket Academy. Questions about lane hire, coaching, or bookings? We'd love to hear from you.",
+    "Get in touch with Cricpro Centre of Excellence. Questions about lane hire, coaching, or bookings? We'd love to hear from you.",
 }
 
 export default function ContactPage() {
@@ -76,7 +76,7 @@ export default function ContactPage() {
                     <div>
                       <h3 className="mb-1 font-semibold">Location</h3>
                       <p className="text-muted-foreground">
-                        Next Gen Cricket Academy
+                        Cricpro Centre of Excellence
                         <br />
                         [Address Coming Soon]
                       </p>

@@ -181,7 +181,7 @@ export default function AdminGroupSessionsPage() {
   return (
     <div className="max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Group Sessions</h1>
+        <h1 className="text-2xl font-bold text-foreground">Group Sessions</h1>
         <button
           onClick={() => setShowForm(true)}
           className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90"
@@ -193,11 +193,11 @@ export default function AdminGroupSessionsPage() {
       {/* Add/Edit Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <div className="bg-card rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-semibold mb-4">{editingId ? 'Edit' : 'Add'} Session</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Title</label>
                 <input
                   type="text"
                   value={formData.title}
@@ -207,7 +207,7 @@ export default function AdminGroupSessionsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Age Group</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Age Group</label>
                 <input
                   type="text"
                   value={formData.age_group}
@@ -219,7 +219,7 @@ export default function AdminGroupSessionsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Max Players</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Max Players</label>
                   <input
                     type="number"
                     value={formData.max_players}
@@ -230,7 +230,7 @@ export default function AdminGroupSessionsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Price (£)</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Price (£)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -242,7 +242,7 @@ export default function AdminGroupSessionsPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Coach Name</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Coach Name</label>
                 <input
                   type="text"
                   value={formData.coach_name}
@@ -251,7 +251,7 @@ export default function AdminGroupSessionsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Schedule</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Schedule</label>
                 <input
                   type="text"
                   value={formData.schedule}
@@ -269,13 +269,13 @@ export default function AdminGroupSessionsPage() {
                   id="active"
                   className="rounded"
                 />
-                <label htmlFor="active" className="text-sm text-gray-700">Active</label>
+                <label htmlFor="active" className="text-sm text-foreground">Active</label>
               </div>
               <div className="flex gap-2 justify-end">
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-4 py-2 border rounded-lg"
+                  className="px-4 py-2 border rounded-lg bg-background text-foreground"
                 >
                   Cancel
                 </button>
@@ -298,27 +298,27 @@ export default function AdminGroupSessionsPage() {
       ) : (
         <>
           {/* Sessions List */}
-          <div className="bg-white rounded-lg shadow mb-8">
+          <div className="bg-card rounded-lg shadow mb-8">
             <div className="p-4 border-b">
               <h2 className="text-lg font-semibold">Sessions</h2>
             </div>
             {sessions.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">No sessions found</div>
+              <div className="p-8 text-center text-muted-foreground">No sessions found</div>
             ) : (
               <div className="divide-y">
                 {sessions.map((session) => (
                   <div key={session.id} className="p-4 flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-gray-900">{session.title}</h3>
-                        <span className={`px-2 py-0.5 text-xs rounded ${session.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                        <h3 className="font-medium text-foreground">{session.title}</h3>
+                        <span className={`px-2 py-0.5 text-xs rounded ${session.active ? 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400' : 'bg-muted text-muted-foreground'}`}>
                           {session.active ? 'Active' : 'Inactive'}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted-foreground">
                         {session.age_group} • {session.schedule} • £{session.price}/session
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted-foreground">
                         {session.current_players}/{session.max_players} players
                         {session.coach_name && ` • Coach: ${session.coach_name}`}
                       </p>
@@ -326,25 +326,25 @@ export default function AdminGroupSessionsPage() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => setSelectedSession(session.id)}
-                        className="px-3 py-1 text-sm border rounded hover:bg-gray-50"
+                        className="px-3 py-1 text-sm border rounded hover:bg-muted bg-background text-foreground"
                       >
                         View Bookings
                       </button>
                       <button
                         onClick={() => editSession(session)}
-                        className="px-3 py-1 text-sm border rounded hover:bg-gray-50"
+                        className="px-3 py-1 text-sm border rounded hover:bg-muted bg-background text-foreground"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => toggleActive(session.id, session.active)}
-                        className="px-3 py-1 text-sm border rounded hover:bg-gray-50"
+                        className="px-3 py-1 text-sm border rounded hover:bg-muted bg-background text-foreground"
                       >
                         {session.active ? 'Disable' : 'Enable'}
                       </button>
                       <button
                         onClick={() => deleteSession(session.id)}
-                        className="px-3 py-1 text-sm border border-red-200 text-red-600 rounded hover:bg-red-50"
+                        className="px-3 py-1 text-sm border border-destructive/30 text-destructive rounded hover:bg-destructive/10"
                       >
                         Delete
                       </button>
@@ -356,7 +356,7 @@ export default function AdminGroupSessionsPage() {
           </div>
 
           {/* Bookings List */}
-          <div className="bg-white rounded-lg shadow">
+          <div className="bg-card rounded-lg shadow">
             <div className="p-4 border-b flex justify-between items-center">
               <h2 className="text-lg font-semibold">
                 {selectedSession ? `Bookings for ${sessions.find(s => s.id === selectedSession)?.title}` : 'All Bookings'}
@@ -364,47 +364,47 @@ export default function AdminGroupSessionsPage() {
               {selectedSession && (
                 <button
                   onClick={() => setSelectedSession(null)}
-                  className="text-sm text-gray-500 hover:text-gray-700"
+                  className="text-sm text-muted-foreground hover:text-foreground"
                 >
                   Show All
                 </button>
               )}
             </div>
             {filteredBookings.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">No bookings found</div>
+              <div className="p-8 text-center text-muted-foreground">No bookings found</div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-border">
+                  <thead className="bg-muted">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Player</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Parent</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Session</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Player</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Parent</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Contact</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Session</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-border">
                     {filteredBookings.map((booking) => (
                       <tr key={booking.id}>
                         <td className="px-4 py-3">
-                          <div className="text-gray-900">{booking.player_name}</div>
+                          <div className="text-foreground">{booking.player_name}</div>
                           {booking.player_age && (
-                            <div className="text-xs text-gray-500">Age: {booking.player_age}</div>
+                            <div className="text-xs text-muted-foreground">Age: {booking.player_age}</div>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-500">{booking.parent_name}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500">
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{booking.parent_name}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">
                           <div>{booking.parent_email}</div>
                           <div className="text-xs">{booking.parent_phone}</div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-500">
+                        <td className="px-4 py-3 text-sm text-muted-foreground">
                           {booking.session?.title}
                         </td>
                         <td className="px-4 py-3">
                           <button
                             onClick={() => deleteBooking(booking.id)}
-                            className="text-red-600 hover:underline text-sm"
+                            className="text-destructive hover:underline text-sm"
                           >
                             Remove
                           </button>

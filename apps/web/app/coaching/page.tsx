@@ -22,7 +22,7 @@ import { ArrowLeft, Award, User, Target, Clock, Star } from "lucide-react"
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "One-to-One Coaching | Next Gen Cricket Academy",
+  title: "One-to-One Coaching | Cricpro Centre of Excellence",
   description:
     "Personalised cricket coaching from experienced coaches. Tailored training programmes to accelerate your development.",
 }

@@ -44,7 +44,7 @@ const statCards = [
 ];
 
 function statusBadge(status: string) {
-  if (status === 'confirmed') return <Badge className="bg-green-500/15 text-green-700 border-green-200 hover:bg-green-500/15">{status}</Badge>;
+  if (status === 'confirmed') return <Badge className="bg-green-500/15 text-green-700 dark:text-green-400 border-green-200 dark:border-green-500/30 hover:bg-green-500/15">{status}</Badge>;
   if (status === 'cancelled') return <Badge variant="destructive">{status}</Badge>;
   return <Badge variant="secondary">{status}</Badge>;
 }

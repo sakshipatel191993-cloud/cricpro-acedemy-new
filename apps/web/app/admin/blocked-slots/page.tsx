@@ -115,7 +115,7 @@ export default function AdminBlockedSlotsPage() {
   return (
     <div className="max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Blocked Slots</h1>
+        <h1 className="text-2xl font-bold text-foreground">Blocked Slots</h1>
         <button
           onClick={() => setShowForm(true)}
           className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90"
@@ -126,15 +126,15 @@ export default function AdminBlockedSlotsPage() {
 
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <div className="bg-card rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-semibold mb-4">Block a Slot</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Resource</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Resource</label>
                 <select
                   value={formData.resource_id}
                   onChange={(e) => setFormData({ ...formData, resource_id: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full border rounded-lg px-3 py-2 bg-background text-foreground"
                   required
                 >
                   <option value="">Select a resource</option>
@@ -144,32 +144,32 @@ export default function AdminBlockedSlotsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Start Date & Time</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Start Date & Time</label>
                 <input
                   type="datetime-local"
                   value={formData.start_at}
                   onChange={(e) => setFormData({ ...formData, start_at: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full border rounded-lg px-3 py-2 bg-background text-foreground"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">End Date & Time</label>
+                <label className="block text-sm font-medium text-foreground mb-1">End Date & Time</label>
                 <input
                   type="datetime-local"
                   value={formData.end_at}
                   onChange={(e) => setFormData({ ...formData, end_at: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full border rounded-lg px-3 py-2 bg-background text-foreground"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Reason</label>
                 <input
                   type="text"
                   value={formData.reason}
                   onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full border rounded-lg px-3 py-2 bg-background text-foreground"
                   placeholder="Maintenance, event, etc."
                   required
                 />
@@ -178,7 +178,7 @@ export default function AdminBlockedSlotsPage() {
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-4 py-2 border rounded-lg"
+                  className="px-4 py-2 border rounded-lg bg-background text-foreground"
                 >
                   Cancel
                 </button>
@@ -194,33 +194,33 @@ export default function AdminBlockedSlotsPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-card rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Resource</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Start</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">End</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reason</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Resource</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Start</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">End</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Reason</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-border">
               {blockedSlots.map((slot) => (
                 <tr key={slot.id}>
-                  <td className="px-4 py-4 text-sm text-gray-900">{slot.resource?.name || slot.resource_id}</td>
-                  <td className="px-4 py-4 text-sm text-gray-500">
+                  <td className="px-4 py-4 text-sm text-foreground">{slot.resource?.name || slot.resource_id}</td>
+                  <td className="px-4 py-4 text-sm text-muted-foreground">
                     {new Date(slot.start_at).toLocaleString()}
                   </td>
-                  <td className="px-4 py-4 text-sm text-gray-500">
+                  <td className="px-4 py-4 text-sm text-muted-foreground">
                     {new Date(slot.end_at).toLocaleString()}
                   </td>
-                  <td className="px-4 py-4 text-sm text-gray-900">{slot.reason}</td>
+                  <td className="px-4 py-4 text-sm text-foreground">{slot.reason}</td>
                   <td className="px-4 py-4 text-right text-sm">
                     <button
                       onClick={() => deleteBlockedSlot(slot.id)}
-                      className="text-red-600 hover:text-red-800"
+                      className="text-destructive hover:text-destructive"
                     >
                       Unblock
                     </button>
@@ -231,7 +231,7 @@ export default function AdminBlockedSlotsPage() {
           </table>
         </div>
         {blockedSlots.length === 0 && (
-          <div className="p-6 text-center text-gray-500">No blocked slots configured.</div>
+          <div className="p-6 text-center text-muted-foreground">No blocked slots configured.</div>
         )}
       </div>
     </div>

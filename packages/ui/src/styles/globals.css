@@ -7,39 +7,50 @@
 @source "../../../components/**/*.{ts,tsx}";
 @source "../**/*.{ts,tsx}";
 
+/* Container utility — Tailwind v4 removed the default `container`,
+   but every page/layout relies on it. Re-add it as a centered,
+   max-width wrapper. */
+@utility container {
+  margin-inline: auto;
+  width: 100%;
+  max-width: var(--container-7xl);
+  padding-inline: 1rem;
+}
+
+/* Light theme (default) */
 :root {
-  --background: #111827;
-  --foreground: #f9fafb;
-  --card: #1f2937;
-  --card-foreground: #f9fafb;
-  --popover: #1f2937;
-  --popover-foreground: #f9fafb;
-  --primary: #e11d48;
+  --background: #fdfffa;
+  --foreground: #1d2544;
+  --card: #ffffff;
+  --card-foreground: #1d2544;
+  --popover: #ffffff;
+  --popover-foreground: #1d2544;
+  --primary: #c21d4c;
   --primary-foreground: #ffffff;
-  --secondary: #374151;
-  --secondary-foreground: #f9fafb;
-  --muted: #1f2937;
-  --muted-foreground: #9ca3af;
-  --accent: #27130e;
-  --accent-foreground: #e11d48;
-  --destructive: #ef4444;
+  --secondary: #f1f3f8;
+  --secondary-foreground: #1d2544;
+  --muted: #f4f5f1;
+  --muted-foreground: #5b6472;
+  --accent: #fbe6ec;
+  --accent-foreground: #c21d4c;
+  --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --border: #374151;
-  --input: #1f2937;
-  --ring: #e11d48;
-  --chart-1: #e11d48;
-  --chart-2: #f43f5e;
-  --chart-3: #fb7185;
+  --border: #e4e7ec;
+  --input: #d8dce4;
+  --ring: #c21d4c;
+  --chart-1: #c21d4c;
+  --chart-2: #e11d48;
+  --chart-3: #f43f5e;
   --chart-4: #9f1239;
   --chart-5: #881337;
-  --sidebar: #0f172a;
-  --sidebar-foreground: #f9fafb;
-  --sidebar-primary: #e11d48;
+  --sidebar: #fdf6f8;
+  --sidebar-foreground: #1d2544;
+  --sidebar-primary: #c21d4c;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #27130e;
-  --sidebar-accent-foreground: #e11d48;
-  --sidebar-border: #374151;
-  --sidebar-ring: #e11d48;
+  --sidebar-accent: #fbe6ec;
+  --sidebar-accent-foreground: #c21d4c;
+  --sidebar-border: #e4e7ec;
+  --sidebar-ring: #c21d4c;
   --font-sans: Inter, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: JetBrains Mono, monospace;
@@ -48,8 +59,8 @@
   --shadow-y: 4px;
   --shadow-blur: 20px;
   --shadow-spread: 0px;
-  --shadow-opacity: 0.4;
-  --shadow-color: #e11d48;
+  --shadow-opacity: 0.15;
+  --shadow-color: #c21d4c;
   --shadow-2xs: 0px 2px 8px 0px hsl(346 80% 50% / 0.06);
   --shadow-xs: 0px 2px 8px 0px hsl(346 80% 50% / 0.08);
   --shadow-sm: 0px 2px 12px 0px hsl(346 80% 50% / 0.10), 0px 1px 2px -1px hsl(0 0% 0% / 0.20);
@@ -80,7 +91,7 @@
   --destructive: #f85149;
   --destructive-foreground: #ffffff;
   --border: #30363d;
-  --input: #161b22;
+  --input: #21262d;
   --ring: #e11d48;
   --chart-1: #e11d48;
   --chart-2: #f43f5e;
@@ -179,8 +190,27 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
   body {
     @apply bg-background text-foreground;
     letter-spacing: var(--tracking-normal);
+  }
+  /* Native form controls (admin filters/forms) follow the theme so they
+     don't stay white in dark mode. shadcn controls carry data-slot and are
+     styled by their own utilities, so they're excluded here. */
+  select,
+  input:not([data-slot]),
+  textarea:not([data-slot]) {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
   }
 }

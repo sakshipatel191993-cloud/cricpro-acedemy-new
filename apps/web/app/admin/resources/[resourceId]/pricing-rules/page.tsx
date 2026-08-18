@@ -152,7 +152,7 @@ export default function PricingRulesPage() {
   return (
     <div className="max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Pricing Rules</h1>
+        <h1 className="text-2xl font-bold text-foreground">Pricing Rules</h1>
         <button
           onClick={() => setShowForm(true)}
           className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90"
@@ -163,11 +163,11 @@ export default function PricingRulesPage() {
 
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <div className="bg-card rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-semibold mb-4">{editingId ? 'Edit' : 'Add'} Pricing Rule</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Rule Name</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Rule Name</label>
                 <input
                   type="text"
                   value={formData.name}
@@ -179,7 +179,7 @@ export default function PricingRulesPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Start Time</label>
                   <input
                     type="time"
                     value={formData.start_time}
@@ -189,7 +189,7 @@ export default function PricingRulesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">End Time</label>
                   <input
                     type="time"
                     value={formData.end_time}
@@ -200,14 +200,14 @@ export default function PricingRulesPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Days</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Days</label>
                 <div className="flex flex-wrap gap-2">
                   {dayNames.map((day, i) => (
                     <button
                       key={i}
                       type="button"
                       onClick={() => toggleDay(i)}
-                      className={`px-3 py-1 text-sm rounded ${formData.days.includes(i) ? 'bg-primary text-white' : 'bg-gray-100'}`}
+                      className={`px-3 py-1 text-sm rounded ${formData.days.includes(i) ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}
                     >
                       {day}
                     </button>
@@ -215,7 +215,7 @@ export default function PricingRulesPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Price (£)</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Price (£)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -226,7 +226,7 @@ export default function PricingRulesPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Priority</label>
                 <input
                   type="number"
                   value={formData.priority}
@@ -243,13 +243,13 @@ export default function PricingRulesPage() {
                   id="active"
                   className="rounded"
                 />
-                <label htmlFor="active" className="text-sm text-gray-700">Active</label>
+                <label htmlFor="active" className="text-sm text-foreground">Active</label>
               </div>
               <div className="flex gap-2 justify-end">
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-4 py-2 border rounded-lg"
+                  className="px-4 py-2 border rounded-lg bg-background text-foreground"
                 >
                   Cancel
                 </button>
@@ -265,36 +265,36 @@ export default function PricingRulesPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div className="bg-card rounded-lg shadow overflow-hidden">
+        <table className="min-w-full divide-y divide-border">
+          <thead className="bg-muted">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time Range</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Days</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Name</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Time Range</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Days</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Price</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Status</th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-border">
             {rules.map((rule) => (
               <tr key={rule.id}>
-                <td className="px-6 py-4 text-sm font-medium text-gray-900">{rule.name}</td>
-                <td className="px-6 py-4 text-sm text-gray-900">{rule.start_time} - {rule.end_time}</td>
-                <td className="px-6 py-4 text-sm text-gray-900">
+                <td className="px-6 py-4 text-sm font-medium text-foreground">{rule.name}</td>
+                <td className="px-6 py-4 text-sm text-foreground">{rule.start_time} - {rule.end_time}</td>
+                <td className="px-6 py-4 text-sm text-foreground">
                   {rule.days.map(d => dayNames[d]).join(', ')}
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-900">£{rule.price}</td>
+                <td className="px-6 py-4 text-sm text-foreground">£{rule.price}</td>
                 <td className="px-6 py-4">
-                  <span className={`px-2 py-1 text-xs rounded ${rule.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                  <span className={`px-2 py-1 text-xs rounded ${rule.active ? 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400' : 'bg-muted text-muted-foreground'}`}>
                     {rule.active ? 'Active' : 'Inactive'}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right text-sm">
                   <button
                     onClick={() => toggleActive(rule.id, rule.active)}
-                    className="text-gray-600 hover:text-gray-900 mr-2"
+                    className="text-muted-foreground hover:text-foreground mr-2"
                   >
                     {rule.active ? 'Disable' : 'Enable'}
                   </button>
@@ -306,7 +306,7 @@ export default function PricingRulesPage() {
                   </button>
                   <button
                     onClick={() => deleteRule(rule.id)}
-                    className="text-red-600 hover:text-red-800"
+                    className="text-destructive hover:text-destructive"
                   >
                     Delete
                   </button>
@@ -316,7 +316,7 @@ export default function PricingRulesPage() {
           </tbody>
         </table>
         {rules.length === 0 && (
-          <div className="p-6 text-center text-gray-500">No pricing rules configured.</div>
+          <div className="p-6 text-center text-muted-foreground">No pricing rules configured.</div>
         )}
       </div>
     </div>

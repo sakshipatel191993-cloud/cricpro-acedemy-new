@@ -15,9 +15,9 @@ import {
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "About Us | Next Gen Cricket Academy",
+  title: "About Us | Cricpro Centre of Excellence",
   description:
-    "Learn about Next Gen Cricket Academy - our mission, facilities, and qualified coaching team. Premium indoor cricket training.",
+    "Learn about Cricpro Centre of Excellence - our mission, facilities, and qualified coaching team. Premium indoor cricket training.",
 }
 
 export default function AboutPage() {
@@ -36,7 +36,7 @@ export default function AboutPage() {
           <div className="max-w-3xl">
             <Badge className="mb-4">About Us</Badge>
             <h1 className="mb-4 text-3xl font-bold md:text-4xl lg:text-5xl">
-              Next Gen Cricket Academy
+              Cricpro Centre of Excellence
             </h1>
             <p className="text-lg text-muted-foreground">
               Where passion meets professional training. We're dedicated to
@@ -54,7 +54,7 @@ export default function AboutPage() {
             <h2 className="mb-6 text-2xl font-bold md:text-3xl">Our Story</h2>
             <div className="space-y-4 text-muted-foreground">
               <p>
-                At Next Generation Cricket Academy, our mission is simple — to
+                At Cricpro Centre of Excellence, our mission is simple — to
                 deliver elite cricket training in a premium environment built
                 for players who want to develop their game to the highest
                 standard.

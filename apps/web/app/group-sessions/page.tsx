@@ -78,8 +78,8 @@ export default function GroupSessionsPage() {
       <main className="min-h-screen flex items-center justify-center p-4">
         <Card className="max-w-md w-full text-center p-8">
           <div className="flex justify-center mb-6">
-            <div className="bg-green-100 p-3 rounded-full">
-              <CheckCircle className="h-12 w-12 text-green-600" />
+            <div className="bg-green-100 dark:bg-green-500/20 p-3 rounded-full">
+              <CheckCircle className="h-12 w-12 text-green-600 dark:text-green-400" />
             </div>
           </div>
           <h1 className="text-2xl font-bold mb-2">Booking Confirmed!</h1>

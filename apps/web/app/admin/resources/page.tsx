@@ -130,7 +130,7 @@ export default function AdminResourcesPage() {
   return (
     <div className="max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Resources</h1>
+        <h1 className="text-2xl font-bold text-foreground">Resources</h1>
         <button
           onClick={() => setShowForm(true)}
           className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90"
@@ -142,25 +142,25 @@ export default function AdminResourcesPage() {
       {/* Add/Edit Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <div className="bg-card rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-semibold mb-4">{editingId ? 'Edit' : 'Add'} Resource</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Name</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full border rounded-lg px-3 py-2 bg-background text-foreground"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Type</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full border rounded-lg px-3 py-2 bg-background text-foreground"
                 >
                   <option value="lane">Lane</option>
                   <option value="bowling_machine">Bowling Machine</option>
@@ -168,12 +168,12 @@ export default function AdminResourcesPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Capacity</label>
                 <input
                   type="number"
                   value={formData.capacity}
                   onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) })}
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full border rounded-lg px-3 py-2 bg-background text-foreground"
                   min="1"
                 />
               </div>
@@ -185,13 +185,13 @@ export default function AdminResourcesPage() {
                   id="active"
                   className="rounded"
                 />
-                <label htmlFor="active" className="text-sm text-gray-700">Active</label>
+                <label htmlFor="active" className="text-sm text-foreground">Active</label>
               </div>
               <div className="flex gap-2 justify-end">
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-4 py-2 border rounded-lg"
+                  className="px-4 py-2 border rounded-lg bg-background text-foreground"
                 >
                   Cancel
                 </button>
@@ -214,44 +214,44 @@ export default function AdminResourcesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {resources.map((resource) => (
-            <div key={resource.id} className="bg-white rounded-lg shadow p-6">
+            <div key={resource.id} className="bg-card rounded-lg shadow p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="font-semibold text-gray-900">{resource.name}</h3>
-                  <span className="text-sm text-gray-500">{typeLabels[resource.type]}</span>
+                  <h3 className="font-semibold text-foreground">{resource.name}</h3>
+                  <span className="text-sm text-muted-foreground">{typeLabels[resource.type]}</span>
                 </div>
-                <span className={`px-2 py-1 text-xs rounded ${resource.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                <span className={`px-2 py-1 text-xs rounded ${resource.active ? 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400' : 'bg-muted text-muted-foreground'}`}>
                   {resource.active ? 'Active' : 'Inactive'}
                 </span>
               </div>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Capacity</span>
-                  <span className="text-gray-900">{resource.capacity} players</span>
+                  <span className="text-muted-foreground">Capacity</span>
+                  <span className="text-foreground">{resource.capacity} players</span>
                 </div>
               </div>
               <div className="flex gap-2 mt-4 pt-4 border-t">
                 <Link
                   href={`/admin/resources/${resource.id}/availability-rules`}
-                  className="flex-1 px-3 py-2 text-sm border rounded hover:bg-gray-50 text-center"
+                  className="flex-1 px-3 py-2 text-sm border rounded hover:bg-muted bg-background text-foreground text-center"
                 >
                   Settings
                 </Link>
                 <button
                   onClick={() => toggleActive(resource.id, resource.active)}
-                  className="flex-1 px-3 py-2 text-sm border rounded hover:bg-gray-50"
+                  className="flex-1 px-3 py-2 text-sm border rounded hover:bg-muted bg-background text-foreground"
                 >
                   {resource.active ? 'Disable' : 'Enable'}
                 </button>
                 <button
                   onClick={() => editResource(resource)}
-                  className="flex-1 px-3 py-2 text-sm border rounded hover:bg-gray-50"
+                  className="flex-1 px-3 py-2 text-sm border rounded hover:bg-muted bg-background text-foreground"
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => deleteResource(resource.id)}
-                  className="flex-1 px-3 py-2 text-sm border border-red-200 text-red-600 rounded hover:bg-red-50"
+                  className="flex-1 px-3 py-2 text-sm border border-destructive/30 text-destructive rounded hover:bg-destructive/10"
                 >
                   Delete
                 </button>

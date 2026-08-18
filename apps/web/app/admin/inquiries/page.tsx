@@ -78,10 +78,10 @@ export default function AdminInquiriesPage() {
   }
 
   const statusColors: Record<string, string> = {
-    new: 'bg-red-100 text-red-800',
-    contacted: 'bg-yellow-100 text-yellow-800',
-    converted: 'bg-green-100 text-green-800',
-    closed: 'bg-gray-100 text-gray-600'
+    new: 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400',
+    contacted: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/15 dark:text-yellow-400',
+    converted: 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400',
+    closed: 'bg-muted text-muted-foreground'
   };
 
   const typeLabels: Record<string, string> = {
@@ -94,12 +94,12 @@ export default function AdminInquiriesPage() {
   return (
     <div className="max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Inquiries</h1>
+        <h1 className="text-2xl font-bold text-foreground">Inquiries</h1>
         <div className="flex gap-2">
           <select
             value={typeFilter}
             onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-            className="border rounded-lg px-4 py-2"
+            className="border rounded-lg px-4 py-2 bg-background text-foreground"
           >
             <option value="">All Types</option>
             <option value="coaching">Coaching</option>
@@ -110,7 +110,7 @@ export default function AdminInquiriesPage() {
           <select
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="border rounded-lg px-4 py-2"
+            className="border rounded-lg px-4 py-2 bg-background text-foreground"
           >
             <option value="">All Statuses</option>
             <option value="new">New</option>
@@ -126,35 +126,35 @@ export default function AdminInquiriesPage() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       ) : inquiries.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
+        <div className="bg-card rounded-lg shadow p-8 text-center text-muted-foreground">
           No inquiries found
         </div>
       ) : (
         <>
-          <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="bg-card rounded-lg shadow overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-border">
+                <thead className="bg-muted">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Type</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Name</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Email</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Phone</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Date</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-border">
                   {inquiries.map((inquiry) => (
-                    <tr key={inquiry.id} className="hover:bg-gray-50">
+                    <tr key={inquiry.id} className="hover:bg-muted">
                       <td className="px-4 py-3">
-                        <span className="text-sm text-gray-900">{typeLabels[inquiry.type]}</span>
+                        <span className="text-sm text-foreground">{typeLabels[inquiry.type]}</span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{inquiry.name}</td>
-                      <td className="px-4 py-3 text-sm text-gray-500">{inquiry.email}</td>
-                      <td className="px-4 py-3 text-sm text-gray-500">{inquiry.phone || '-'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-500">
+                      <td className="px-4 py-3 text-sm text-foreground">{inquiry.name}</td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">{inquiry.email}</td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">{inquiry.phone || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
                         {new Date(inquiry.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-3">
@@ -178,7 +178,7 @@ export default function AdminInquiriesPage() {
                         </button>
                         <button
                           onClick={() => deleteInquiry(inquiry.id)}
-                          className="text-red-600 hover:underline text-sm"
+                          className="text-destructive hover:underline text-sm"
                         >
                           Delete
                         </button>
@@ -196,15 +196,15 @@ export default function AdminInquiriesPage() {
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-4 py-2 border rounded disabled:opacity-50"
+                className="px-4 py-2 border rounded disabled:opacity-50 bg-background text-foreground"
               >
                 Previous
               </button>
-              <span className="text-gray-600">Page {page} of {totalPages}</span>
+              <span className="text-muted-foreground">Page {page} of {totalPages}</span>
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="px-4 py-2 border rounded disabled:opacity-50"
+                className="px-4 py-2 border rounded disabled:opacity-50 bg-background text-foreground"
               >
                 Next
               </button>
@@ -216,12 +216,12 @@ export default function AdminInquiriesPage() {
       {/* Inquiry Detail Modal */}
       {selectedInquiry && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-lg">
+          <div className="bg-card rounded-lg p-6 w-full max-w-lg">
             <div className="flex justify-between items-start mb-4">
               <h2 className="text-xl font-semibold">Inquiry Details</h2>
               <button
                 onClick={() => setSelectedInquiry(null)}
-                className="text-gray-400 hover:text-gray-600 text-2xl"
+                className="text-muted-foreground hover:text-foreground text-2xl"
               >
                 ×
               </button>
@@ -229,33 +229,33 @@ export default function AdminInquiriesPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm text-gray-500">Type</label>
+                  <label className="text-sm text-muted-foreground">Type</label>
                   <p className="font-medium">{typeLabels[selectedInquiry.type]}</p>
                 </div>
                 <div>
-                  <label className="text-sm text-gray-500">Status</label>
+                  <label className="text-sm text-muted-foreground">Status</label>
                   <p className="font-medium capitalize">{selectedInquiry.status}</p>
                 </div>
               </div>
               <div>
-                <label className="text-sm text-gray-500">Name</label>
+                <label className="text-sm text-muted-foreground">Name</label>
                 <p className="font-medium">{selectedInquiry.name}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">Email</label>
+                <label className="text-sm text-muted-foreground">Email</label>
                 <p className="font-medium">{selectedInquiry.email}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">Phone</label>
+                <label className="text-sm text-muted-foreground">Phone</label>
                 <p className="font-medium">{selectedInquiry.phone || 'Not provided'}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">Message</label>
-                <p className="mt-1 p-3 bg-gray-50 rounded text-gray-700">{selectedInquiry.message}</p>
+                <label className="text-sm text-muted-foreground">Message</label>
+                <p className="mt-1 p-3 bg-muted rounded text-foreground">{selectedInquiry.message}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">Received</label>
-                <p className="text-gray-700">
+                <label className="text-sm text-muted-foreground">Received</label>
+                <p className="text-foreground">
                   {new Date(selectedInquiry.created_at).toLocaleString()}
                 </p>
               </div>
@@ -271,7 +271,7 @@ export default function AdminInquiriesPage() {
               </button>
               <button
                 onClick={() => setSelectedInquiry(null)}
-                className="px-4 py-2 border rounded-lg"
+                className="px-4 py-2 border rounded-lg bg-background text-foreground"
               >
                 Close
               </button>

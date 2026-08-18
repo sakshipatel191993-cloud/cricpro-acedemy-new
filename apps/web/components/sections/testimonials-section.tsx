@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@workspace/ui/components/card";
 import { Badge } from "@workspace/ui/components/badge";
+import { Star } from "lucide-react";
 import { FadeIn } from "@/components/motion/fade-in";
 import { StaggerChildren, StaggerItem } from "@/components/motion/stagger-children";
 import { testimonials } from "@/lib/data";
@@ -28,7 +29,7 @@ export function TestimonialsSection() {
                     {/* Stars */}
                     <div className="flex gap-1 mb-4">
                       {Array.from({ length: 5 }).map((_, i) => (
-                        <span key={i} className="text-primary text-sm">★</span>
+                        <Star key={i} className="h-4 w-4 fill-primary text-primary" />
                       ))}
                     </div>
                     <p className="text-muted-foreground mb-4 italic leading-relaxed">

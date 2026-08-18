@@ -3,6 +3,7 @@
 import { Button } from "@workspace/ui/components/button";
 import { Badge } from "@workspace/ui/components/badge";
 import Link from "next/link";
+import { Cake, Trophy, PartyPopper, Check } from "lucide-react";
 import { FadeIn } from "@/components/motion/fade-in";
 import { services } from "@/lib/data";
 
@@ -22,10 +23,10 @@ export function BirthdaySection() {
                   {services.birthdayParties.description}
                 </p>
                 <ul className="space-y-2 text-muted-foreground mb-6">
-                  <li className="flex items-center gap-2"><span className="text-primary font-bold">✓</span> Active, fun-filled celebrations</li>
-                  <li className="flex items-center gap-2"><span className="text-primary font-bold">✓</span> Professional setup</li>
-                  <li className="flex items-center gap-2"><span className="text-primary font-bold">✓</span> Stress-free for parents</li>
-                  <li className="flex items-center gap-2"><span className="text-primary font-bold">✓</span> Memorable experiences</li>
+                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-primary flex-shrink-0" /> Active, fun-filled celebrations</li>
+                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-primary flex-shrink-0" /> Professional setup</li>
+                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-primary flex-shrink-0" /> Stress-free for parents</li>
+                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-primary flex-shrink-0" /> Memorable experiences</li>
                 </ul>
                 <Button asChild variant="outline" size="lg" className="border-border/60 hover:border-primary/60 hover:bg-primary/5">
                   <Link href={services.birthdayParties.path}>Plan Your Party</Link>
@@ -39,10 +40,10 @@ export function BirthdaySection() {
                 <p className="text-muted-foreground mb-2">Custom quotes available</p>
                 <p className="text-3xl font-bold">Birthday Packages</p>
                 <p className="text-sm text-muted-foreground mt-2">Tailored to your needs</p>
-                <div className="mt-6 flex justify-center gap-2">
-                  {["🎂", "🏏", "🎉"].map((emoji, i) => (
-                    <span key={i} className="text-2xl">{emoji}</span>
-                  ))}
+                <div className="mt-6 flex justify-center gap-6">
+                  <Cake className="h-8 w-8 text-primary" />
+                  <Trophy className="h-8 w-8 text-primary" />
+                  <PartyPopper className="h-8 w-8 text-primary" />
                 </div>
               </div>
             </FadeIn>

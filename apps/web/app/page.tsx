@@ -8,10 +8,9 @@ import { WhyUsSection } from "@/components/sections/why-us-section";
 import { StatsSection } from "@/components/sections/stats-section";
 import { TestimonialsSection } from "@/components/sections/testimonials-section";
 import { CtaSection } from "@/components/sections/cta-section";
-import { Footer } from "@/components/footer";
 
 export const metadata: Metadata = {
-  title: "Next Gen Cricket Academy | Premium Indoor Cricket Training",
+  title: "Cricpro Centre of Excellence | Premium Indoor Cricket Training",
   description: "Book indoor cricket lanes, coaching sessions, and bowling machine hire. Practice to Perfection at our premium indoor cricket facility. Open 12pm-12am, 7 days a week.",
   keywords: ["cricket training", "indoor cricket", "cricket coaching", "cricket lane hire", "batting practice", "bowling machine hire"],
 };
@@ -28,7 +27,6 @@ export default function Home() {
       <StatsSection />
       <TestimonialsSection />
       <CtaSection />
-      <Footer />
     </main>
   );
 }

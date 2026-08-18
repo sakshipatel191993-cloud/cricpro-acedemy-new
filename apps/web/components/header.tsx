@@ -10,6 +10,7 @@ import {
   SheetContent,
   SheetTrigger,
   SheetTitle,
+  SheetDescription,
 } from "@workspace/ui/components/sheet"
 import {
   DropdownMenu,
@@ -20,6 +21,7 @@ import {
 } from "@workspace/ui/components/dropdown-menu"
 import { Menu, X, LogOut, User } from "lucide-react"
 import { useAuth } from "@/lib/context/auth"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 const navLinks = [
   { href: "/lane-hire", label: "Lane Hire" },
@@ -81,7 +83,7 @@ export function Header() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/crircpro-coe-logo.png"
-              alt="Next Gen Cricket Academy"
+              alt="Cricpro Centre of Excellence"
               height={100}
               width={100}
             />
@@ -148,6 +150,7 @@ export function Header() {
                 <Link href="/lane-hire">Book Now</Link>
               </Button>
             </motion.div>
+            <ThemeToggle />
           </div>
 
           {/* Mobile Menu */}
@@ -184,6 +187,7 @@ export function Header() {
               className="w-[300px] border-l border-border/60 bg-background sm:w-[350px]"
             >
               <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+              <SheetDescription className="sr-only">Navigate to the main sections of the site</SheetDescription>
               <div className="mt-8 flex flex-col gap-6">
                 <Link
                   href="/"
@@ -193,31 +197,29 @@ export function Header() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/crircpro-coe-logo2.png"
-                    alt="Next Gen Cricket Academy"
+                    alt="Cricpro Centre of Excellence"
                     // style={{ height: "48px", width: "auto" }}
                     height={120}
                     width={100}
                   />
-                  <span className="text-lg font-bold">Next Gen Cricket</span>
+                  <span className="text-lg font-bold">Cricpro</span>
                 </Link>
                 <nav className="flex flex-col gap-1">
-                  {navLinks.map((link, i) => (
-                    <motion.div
+                  {navLinks.map((link) => (
+                    <Link
                       key={link.href}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05, duration: 0.3 }}
+                      href={link.href}
+                      className="block rounded-lg px-3 py-2 text-lg font-medium transition-colors hover:bg-primary/10 hover:text-primary"
+                      onClick={() => setIsOpen(false)}
                     >
-                      <Link
-                        href={link.href}
-                        className="block rounded-lg px-3 py-2 text-lg font-medium transition-colors hover:bg-primary/10 hover:text-primary"
-                        onClick={() => setIsOpen(false)}
-                      >
-                        {link.label}
-                      </Link>
-                    </motion.div>
+                      {link.label}
+                    </Link>
                   ))}
                 </nav>
+                <div className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2">
+                  <span className="text-sm font-medium">Theme</span>
+                  <ThemeToggle />
+                </div>
                 <Button asChild className="mt-4 w-full">
                   <Link href="/lane-hire" onClick={() => setIsOpen(false)}>
                     Book Now

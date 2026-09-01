@@ -38,6 +38,18 @@ export function StickyCTA() {
     return "/lane-hire";
   };
 
+  const ctaLink = getCTALink();
+
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // Already on the target page — jump straight to the booking form.
+    if (pathname === ctaLink) {
+      e.preventDefault();
+      document
+        .getElementById("booking-form")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   return (
     <>
       <AnimatePresence>
@@ -51,7 +63,9 @@ export function StickyCTA() {
           >
             <div className="bg-background/95 backdrop-blur-md border-t border-primary/20 px-4 py-3 shadow-xl">
               <Button asChild className="w-full h-12 text-base font-semibold shadow-lg">
-                <Link href={getCTALink()}>{getCTAText()}</Link>
+                <Link href={`${ctaLink}#booking-form`} onClick={handleClick}>
+                  {getCTAText()}
+                </Link>
               </Button>
             </div>
           </motion.div>

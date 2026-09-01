@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/services/supabase';
 import { verifyWebhookSignature } from '@/lib/services/stripe';
-import { sendBookingConfirmation, sendAdminBookingNotification } from '@/lib/services/email';
+import { confirmBooking } from '@/lib/services/confirm-booking';
 
 export const config = { api: { bodyParser: false } };
 
@@ -29,21 +29,11 @@ export async function POST(request: NextRequest) {
 
         if (!bookingId) break;
 
-        const { data: booking, error } = await supabaseAdmin
-          .from('bookings')
-          .update({ status: 'confirmed', payment_status: 'paid', stripe_session_id: session.id })
-          .eq('id', bookingId)
-          .select()
-          .single();
-
-        if (error) {
+        try {
+          await confirmBooking(bookingId, session.id);
+        } catch (error) {
           console.error('Failed to confirm booking:', error);
-          break;
         }
-
-        // Send confirmation emails
-        sendBookingConfirmation(booking).catch(console.error);
-        sendAdminBookingNotification(booking).catch(console.error);
         break;
       }
 

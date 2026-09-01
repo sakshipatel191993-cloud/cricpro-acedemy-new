@@ -98,7 +98,7 @@ export default function ContactPage() {
                     <div>
                       <h3 className="mb-1 font-semibold">Email</h3>
                       <p className="text-muted-foreground">
-                        info@nextgencricket.co.uk
+                        info@cricprocoe.com
                       </p>
                     </div>
                   </div>

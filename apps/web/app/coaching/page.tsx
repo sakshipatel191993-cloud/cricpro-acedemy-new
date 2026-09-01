@@ -113,7 +113,7 @@ export default function CoachingPage() {
       </section>
 
       {/* Enquiry Form */}
-      <section className="py-12 md:py-16">
+      <section id="booking-form" className="py-12 md:py-16 scroll-mt-24">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-2xl">
             <Card>

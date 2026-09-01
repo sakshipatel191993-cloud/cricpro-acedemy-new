@@ -168,7 +168,7 @@ export default function BowlingMachinePage() {
       </section>
 
       {/* Booking */}
-      <section className="py-12 md:py-16">
+      <section id="booking-form" className="py-12 md:py-16 scroll-mt-24">
         <div className="container px-4 mx-auto">
           <div className="max-w-2xl mx-auto">
             <h2 className="text-2xl font-bold mb-6 text-center">Book Bowling Machine</h2>

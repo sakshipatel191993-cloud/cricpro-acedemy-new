@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { Clock, Mail, MapPin, Phone } from "lucide-react";
+import Link from "next/link"
+import { Clock, Mail, MapPin, Phone } from "lucide-react"
 
 const quickLinks = [
   { href: "/lane-hire", label: "Lane Hire" },
@@ -8,17 +8,17 @@ const quickLinks = [
   { href: "/side-arm", label: "Side Arm" },
   { href: "/coaching", label: "Coaching" },
   { href: "/birthday-parties", label: "Birthday Parties" },
-];
+]
 
 const companyLinks = [
   { href: "/about", label: "About Us" },
   { href: "/contact", label: "Contact" },
   { href: "/login", label: "Sign In" },
   { href: "/signup", label: "Create Account" },
-];
+]
 
 export function Footer() {
-  const year = new Date().getFullYear();
+  const year = new Date().getFullYear()
 
   return (
     <footer className="border-t border-border/60 bg-card/40">
@@ -29,14 +29,15 @@ export function Footer() {
             <Link href="/" className="inline-block">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/NGCA-transparent-logo.png"
+                src="/crircpro-coe-logo.png"
                 alt="Cricpro Centre of Excellence"
                 className="h-12 w-auto"
               />
             </Link>
             <p className="text-sm leading-relaxed text-muted-foreground">
               Practice to Perfection. A premium indoor cricket training facility
-              helping cricketers of all ages and abilities reach their full potential.
+              helping cricketers of all ages and abilities reach their full
+              potential.
             </p>
           </div>
 
@@ -92,8 +93,11 @@ export function Footer() {
               </li>
               <li className="flex items-start gap-2.5">
                 <Mail className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
-                <a href="mailto:info@nextgencricket.co.uk" className="transition-colors hover:text-primary">
-                  info@nextgencricket.co.uk
+                <a
+                  href="mailto:info@cricprocoe.com"
+                  className="transition-colors hover:text-primary"
+                >
+                  cricprolimited@hotmail.com
                 </a>
               </li>
               <li className="flex items-start gap-2.5">
@@ -110,5 +114,5 @@ export function Footer() {
         </div>
       </div>
     </footer>
-  );
+  )
 }

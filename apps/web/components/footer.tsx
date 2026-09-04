@@ -1,5 +1,7 @@
 import Link from "next/link"
 import { Clock, Mail, MapPin, Phone } from "lucide-react"
+import { LOCATION } from "@/lib/location"
+import { OPERATING_HOURS } from "@/lib/hours"
 
 const quickLinks = [
   { href: "/lane-hire", label: "Lane Hire" },
@@ -82,14 +84,29 @@ export function Footer() {
               <li className="flex items-start gap-2.5">
                 <Clock className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
                 <span>
-                  Monday – Sunday
+                  {OPERATING_HOURS.weekday.label}
                   <br />
-                  12:00 PM – 12:00 AM
+                  {OPERATING_HOURS.weekday.hours}
+                  <br />
+                  {OPERATING_HOURS.weekend.label}
+                  <br />
+                  {OPERATING_HOURS.weekend.hours}
                 </span>
               </li>
               <li className="flex items-start gap-2.5">
                 <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
-                <span>Cricpro Centre of Excellence</span>
+                <span>
+                  {LOCATION.name}
+                  <br />
+                  <a
+                    href={LOCATION.googleMapsUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="transition-colors hover:text-primary"
+                  >
+                    {LOCATION.address}
+                  </a>
+                </span>
               </li>
               <li className="flex items-start gap-2.5">
                 <Mail className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
@@ -97,12 +114,12 @@ export function Footer() {
                   href="mailto:info@cricprocoe.com"
                   className="transition-colors hover:text-primary"
                 >
-                  cricprolimited@hotmail.com
+                  info@cricprocoe.com
                 </a>
               </li>
               <li className="flex items-start gap-2.5">
                 <Phone className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
-                <span>Coming soon</span>
+                <span>07728 478115</span>
               </li>
             </ul>
           </div>

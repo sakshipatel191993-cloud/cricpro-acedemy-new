@@ -84,7 +84,7 @@ export function HeroSection() {
                 size="lg"
                 className="px-8 text-lg shadow-lg hover:shadow-primary/40"
               >
-                <Link href={services.laneHire.path}>Book a Lane</Link>
+                <Link href={`${services.laneHire.path}#booking-form`}>Book a Lane</Link>
               </Button>
             </motion.div>
             <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
@@ -109,7 +109,7 @@ export function HeroSection() {
             <span className="inline-block h-1 w-1 rounded-full bg-primary" />
             Open 7 days
             <span className="inline-block h-1 w-1 rounded-full bg-primary" />
-            12 PM to 12 AM
+            Weekdays 12–11 PM · Weekends 9 AM–9 PM
             <span className="inline-block h-1 w-1 rounded-full bg-primary" />4
             Indoor Lanes
           </motion.p>

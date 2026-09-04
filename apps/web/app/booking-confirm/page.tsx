@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@workspace/ui/componen
 import { Badge } from '@workspace/ui/components/badge';
 import { Separator } from '@workspace/ui/components/separator';
 import { Calendar, Clock, User, Mail, Phone, CreditCard, ArrowLeft, Loader2 } from 'lucide-react';
+import { LocationDirections } from '@/components/location-directions';
 
 interface PendingBooking {
   serviceType: string;
@@ -193,6 +194,16 @@ export default function BookingConfirmPage() {
                   <span>{booking.customerPhone}</span>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Location */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Where to Find Us</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <LocationDirections />
             </CardContent>
           </Card>
 

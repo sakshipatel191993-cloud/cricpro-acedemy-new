@@ -236,7 +236,7 @@ export default function SlotOverridesPage() {
               <tr key={override.id}>
                 <td className="px-6 py-4 text-sm text-foreground">{override.slot_date}</td>
                 <td className="px-6 py-4 text-sm text-foreground">
-                  {new Date(override.start_at).toLocaleTimeString()} - {new Date(override.end_at).toLocaleTimeString()}
+                  {new Date(override.start_at).toLocaleTimeString([], { timeZone: 'UTC' })} - {new Date(override.end_at).toLocaleTimeString([], { timeZone: 'UTC' })}
                 </td>
                 <td className="px-6 py-4 text-sm text-foreground">
                   {override.blocked ? 'Blocked' : override.custom_price ? `£${override.custom_price}` : 'Default'}

@@ -1,4 +1,5 @@
 import { Resend } from "resend"
+import { LOCATION } from "@/lib/location"
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY
 const FROM = process.env.EMAIL_FROM ?? "noreply@nextgencricket.co.uk"
@@ -81,7 +82,13 @@ function formatTime(iso: string): string {
   const d = new Date(iso)
   return Number.isNaN(d.getTime())
     ? iso
-    : d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+    : d.toLocaleTimeString("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        // Booking times are stored as wall-clock UK time (naive → UTC); render in
+        // UTC so the displayed time matches what was chosen, with no BST/GMT offset.
+        timeZone: "UTC",
+      })
 }
 
 function bookingConfirmationHtml(b: BookingEmailData) {
@@ -91,6 +98,7 @@ function bookingConfirmationHtml(b: BookingEmailData) {
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: "UTC",
   })
   const startTime = formatTime(b.start_at)
   const endTime = b.end_at ? formatTime(b.end_at) : null
@@ -155,12 +163,23 @@ function bookingConfirmationHtml(b: BookingEmailData) {
                   <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#5b6472;">Thanks for booking with Cricpro. Your session is locked in — here are the details.</p>
                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e4e7ec;border-radius:8px;">${detailRows}
                   </table>
+                  <div style="margin:20px 0 0;padding:16px;background-color:#f4f5f1;border-radius:8px;">
+                    <p style="margin:0 0 2px;font-size:13px;color:#5b6472;font-weight:700;">Where to find us</p>
+                    <p style="margin:0;font-size:14px;color:#1d2544;font-weight:700;">${LOCATION.name}</p>
+                    <p style="margin:2px 0 12px;font-size:14px;color:#1d2544;">${LOCATION.address}</p>
+                    <p style="margin:0;">
+                      <a href="${LOCATION.googleMapsUrl}" style="color:#16a34a;font-size:13px;font-weight:600;text-decoration:none;">Open in Google Maps</a>
+                      <span style="color:#5b6472;">&nbsp;&middot;&nbsp;</span>
+                      <a href="${LOCATION.appleMapsUrl}" style="color:#16a34a;font-size:13px;font-weight:600;text-decoration:none;">Open in Apple Maps</a>
+                    </p>
+                  </div>
                   <p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#5b6472;">Please arrive 5 minutes before your session starts.</p>
                 </td>
               </tr>
               <tr>
                 <td style="background-color:#1d2544;padding:24px 32px;border-radius:0 0 12px 12px;text-align:center;">
                   <p style="margin:0;font-size:14px;font-weight:700;color:#ffffff;">Cricpro Centre of Excellence</p>
+                  <p style="margin:6px 0 0;font-size:12px;color:#ffffff;opacity:0.7;">${LOCATION.address}</p>
                   <p style="margin:6px 0 0;font-size:12px;color:#ffffff;opacity:0.7;">Practice to Perfection</p>
                   <p style="margin:12px 0 0;font-size:12px;color:#ffffff;opacity:0.7;">info@cricprocoe.com</p>
                 </td>

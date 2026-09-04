@@ -7,8 +7,8 @@ interface RateScheduleProps {
 
 /**
  * Neutral, non-interactive presentation of peak vs off-peak hourly rates.
- * Uses a day timeline + a legend so it reads as an informational schedule
- * rather than two clickable (and emotionally-charged) pricing options.
+ * Shows weekday and weekend schedules separately since the facility runs
+ * different hours on each.
  */
 export function RateSchedule({ offPeakPrice, peakPrice }: RateScheduleProps) {
   const savings = peakPrice - offPeakPrice;
@@ -22,18 +22,37 @@ export function RateSchedule({ offPeakPrice, peakPrice }: RateScheduleProps) {
         </h3>
       </div>
 
-      {/* Day timeline */}
-      <div className="mt-6 space-y-2">
-        <div className="flex h-2.5 overflow-hidden rounded-full" aria-hidden="true">
-          <div className="flex-[4] bg-muted-foreground/25" />
-          <div className="flex-[6] bg-muted-foreground/55" />
-          <div className="flex-[2] bg-muted-foreground/25" />
+      {/* Weekday timeline */}
+      <div className="mt-6">
+        <p className="text-xs font-semibold text-foreground">
+          Weekdays · Monday – Friday
+        </p>
+        <div className="mt-2 space-y-2">
+          <div className="flex h-2.5 overflow-hidden rounded-full" aria-hidden="true">
+            <div className="flex-[4] bg-muted-foreground/25" />
+            <div className="flex-[7] bg-muted-foreground/55" />
+          </div>
+          <div className="flex justify-between text-[11px] font-medium text-muted-foreground">
+            <span>12 PM</span>
+            <span>4 PM</span>
+            <span>11 PM</span>
+          </div>
         </div>
-        <div className="flex justify-between text-[11px] font-medium text-muted-foreground">
-          <span>12 PM</span>
-          <span>4 PM</span>
-          <span>10 PM</span>
-          <span>12 AM</span>
+      </div>
+
+      {/* Weekend timeline */}
+      <div className="mt-5">
+        <p className="text-xs font-semibold text-foreground">
+          Weekends · Saturday – Sunday
+        </p>
+        <div className="mt-2 space-y-2">
+          <div className="flex h-2.5 overflow-hidden rounded-full" aria-hidden="true">
+            <div className="flex-1 bg-muted-foreground/55" />
+          </div>
+          <div className="flex justify-between text-[11px] font-medium text-muted-foreground">
+            <span>9 AM</span>
+            <span>9 PM</span>
+          </div>
         </div>
       </div>
 
@@ -44,7 +63,7 @@ export function RateSchedule({ offPeakPrice, peakPrice }: RateScheduleProps) {
             <span className="h-3 w-3 shrink-0 rounded-full bg-muted-foreground/30" />
             <div>
               <p className="text-sm font-medium">Off-Peak</p>
-              <p className="text-xs text-muted-foreground">12–4 PM &amp; 10 PM–12 AM</p>
+              <p className="text-xs text-muted-foreground">Mon–Fri · 12–4 PM</p>
             </div>
           </div>
           <p className="text-lg font-semibold tabular-nums">
@@ -58,7 +77,9 @@ export function RateSchedule({ offPeakPrice, peakPrice }: RateScheduleProps) {
             <span className="h-3 w-3 shrink-0 rounded-full bg-muted-foreground/55" />
             <div>
               <p className="text-sm font-medium">Peak</p>
-              <p className="text-xs text-muted-foreground">4–10 PM</p>
+              <p className="text-xs text-muted-foreground">
+                Mon–Fri 4–11 PM · Sat–Sun all day
+              </p>
             </div>
           </div>
           <p className="text-lg font-semibold tabular-nums">

@@ -11,6 +11,7 @@ import {
   CreditCard,
 } from 'lucide-react';
 import { Button } from '@workspace/ui/components/button';
+import { LocationDirections } from '@/components/location-directions';
 
 interface VerifiedBooking {
   booking_reference?: string;
@@ -31,6 +32,8 @@ function formatDate(iso: string) {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
+        // Stored as wall-clock UK time (naive → UTC); render in UTC to avoid a BST offset.
+        timeZone: 'UTC',
       });
 }
 
@@ -38,7 +41,7 @@ function formatTime(iso: string) {
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
     ? iso
-    : d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    : d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
 }
 
 function formatAmount(amount: number | string | undefined) {
@@ -149,6 +152,10 @@ export function BookingSuccessView({
             )}
           </div>
         )}
+
+        <div className="bg-muted/40 rounded-lg px-4 py-4 mb-6 text-left">
+          <LocationDirections />
+        </div>
 
         {status === 'verifying' && (
           <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-6">

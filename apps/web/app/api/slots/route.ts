@@ -174,7 +174,7 @@ async function generateSlotsForDate(
         if (applicableRule) {
           price = applicableRule.price;
         } else {
-          // Default pricing based on resource
+          // Default pricing: weekends are all peak; weekdays peak from 4 PM.
           const hour = currentHour;
           const isPeak = dayOfWeek === 0 || dayOfWeek === 6 || hour >= 16;
           price = isPeak ? '25.00' : '15.00'; // Default peak/off-peak

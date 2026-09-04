@@ -211,10 +211,10 @@ export default function AdminBlockedSlotsPage() {
                 <tr key={slot.id}>
                   <td className="px-4 py-4 text-sm text-foreground">{slot.resource?.name || slot.resource_id}</td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">
-                    {new Date(slot.start_at).toLocaleString()}
+                    {new Date(slot.start_at).toLocaleString([], { timeZone: 'UTC' })}
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">
-                    {new Date(slot.end_at).toLocaleString()}
+                    {new Date(slot.end_at).toLocaleString([], { timeZone: 'UTC' })}
                   </td>
                   <td className="px-4 py-4 text-sm text-foreground">{slot.reason}</td>
                   <td className="px-4 py-4 text-right text-sm">

@@ -194,10 +194,10 @@ export default function LaneHirePage() {
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <Clock className="h-5 w-5 text-primary" />
                 </div>
-                <h3 className="font-semibold">12-Hour Access</h3>
+                <h3 className="font-semibold">Extended Hours</h3>
               </div>
               <p className="text-sm text-muted-foreground">
-                Open 12 PM to 12 AM, 7 days a week
+                Weekdays 12–11 PM · Weekends 9 AM–9 PM
               </p>
             </Card>
             <Card className="p-6">

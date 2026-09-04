@@ -152,10 +152,10 @@ export default function AdminBookingsPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">{booking.resource?.name}</td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">
-                        {new Date(booking.start_at).toLocaleDateString()}
+                        {new Date(booking.start_at).toLocaleDateString([], { timeZone: 'UTC' })}
                         <div className="text-xs">
-                          {new Date(booking.start_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -
-                          {new Date(booking.end_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(booking.start_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} -
+                          {new Date(booking.end_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-foreground">£{booking.amount}</td>

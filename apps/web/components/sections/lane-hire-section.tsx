@@ -50,14 +50,14 @@ export function LaneHireSection() {
                   <div className="flex justify-between items-center p-4 bg-background/60 rounded-lg border border-border/40">
                     <div>
                       <p className="font-semibold">Off Peak</p>
-                      <p className="text-sm text-muted-foreground">12-4PM &amp; 10PM-12AM</p>
+                      <p className="text-sm text-muted-foreground">Weekdays · 12–4 PM</p>
                     </div>
                     <p className="text-2xl font-bold text-primary">£15/hr</p>
                   </div>
                   <div className="flex justify-between items-center p-4 bg-background/60 rounded-lg border border-border/40">
                     <div>
                       <p className="font-semibold">Peak</p>
-                      <p className="text-sm text-muted-foreground">4PM - 10PM</p>
+                      <p className="text-sm text-muted-foreground">Weekdays 4–11 PM · Weekends all day</p>
                     </div>
                     <p className="text-2xl font-bold text-primary">£25/hr</p>
                   </div>

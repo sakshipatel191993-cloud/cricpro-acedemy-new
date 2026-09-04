@@ -27,6 +27,8 @@ import {
   MessageCircle,
 } from "lucide-react"
 import { Metadata } from "next"
+import { LOCATION } from "@/lib/location"
+import { OPERATING_HOURS } from "@/lib/hours"
 
 export const metadata: Metadata = {
   title: "Contact Us | Cricpro Centre of Excellence",
@@ -76,9 +78,16 @@ export default function ContactPage() {
                     <div>
                       <h3 className="mb-1 font-semibold">Location</h3>
                       <p className="text-muted-foreground">
-                        Cricpro Centre of Excellence
+                        {LOCATION.name}
                         <br />
-                        [Address Coming Soon]
+                        <a
+                          href={LOCATION.googleMapsUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="transition-colors hover:text-primary"
+                        >
+                          {LOCATION.address}
+                        </a>
                       </p>
                     </div>
                   </div>
@@ -109,9 +118,13 @@ export default function ContactPage() {
                     <div>
                       <h3 className="mb-1 font-semibold">Opening Hours</h3>
                       <p className="text-muted-foreground">
-                        Monday - Sunday
+                        {OPERATING_HOURS.weekday.label}
                         <br />
-                        12:00 PM - 12:00 AM
+                        {OPERATING_HOURS.weekday.hours}
+                        <br />
+                        {OPERATING_HOURS.weekend.label}
+                        <br />
+                        {OPERATING_HOURS.weekend.hours}
                       </p>
                     </div>
                   </div>

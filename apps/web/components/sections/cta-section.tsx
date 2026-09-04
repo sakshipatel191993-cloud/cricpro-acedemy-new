@@ -27,7 +27,7 @@ export function CtaSection() {
           <FadeIn delay={0.2} className="flex flex-col sm:flex-row gap-4 justify-center">
             <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
               <Button asChild size="lg" className="text-lg px-8 shadow-lg hover:shadow-primary/40">
-                <Link href="/lane-hire">Book a Lane</Link>
+                <Link href="/lane-hire#booking-form">Book a Lane</Link>
               </Button>
             </motion.div>
             <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>

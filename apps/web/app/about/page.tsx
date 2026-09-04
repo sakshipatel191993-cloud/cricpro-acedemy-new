@@ -13,6 +13,8 @@ import {
   Target,
 } from "lucide-react"
 import { Metadata } from "next"
+import { OPERATING_HOURS } from "@/lib/hours"
+import { LOCATION } from "@/lib/location"
 
 export const metadata: Metadata = {
   title: "About Us | Cricpro Centre of Excellence",
@@ -114,7 +116,7 @@ export default function AboutPage() {
               <Clock className="mb-3 h-8 w-8 text-primary" />
               <h3 className="mb-2 font-semibold">Flexible Hours</h3>
               <p className="text-sm text-muted-foreground">
-                Open 12pm-midnight, 7 days a week for maximum convenience
+                Weekdays 12–11 PM, weekends 9 AM–9 PM
               </p>
             </Card>
             <Card className="p-6">
@@ -128,7 +130,7 @@ export default function AboutPage() {
               <MapPin className="mb-3 h-8 w-8 text-primary" />
               <h3 className="mb-2 font-semibold">Easy Access</h3>
               <p className="text-sm text-muted-foreground">
-                Convenient location with ample parking
+                {LOCATION.address} · Ample free parking
               </p>
             </Card>
           </div>
@@ -173,8 +175,8 @@ export default function AboutPage() {
               <Card className="p-6">
                 <h3 className="mb-4 font-semibold">Operating Hours</h3>
                 <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li>• Monday - Sunday</li>
-                  <li>• 12:00 PM - 12:00 AM</li>
+                  <li>• {OPERATING_HOURS.weekday.label}: {OPERATING_HOURS.weekday.hours}</li>
+                  <li>• {OPERATING_HOURS.weekend.label}: {OPERATING_HOURS.weekend.hours}</li>
                   <li>• 7 days a week</li>
                   <li>• Bank holidays included</li>
                 </ul>

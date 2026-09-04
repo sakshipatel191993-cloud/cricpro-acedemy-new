@@ -118,8 +118,8 @@ export default function AdminDashboard() {
                     <div>
                       <p className="font-medium text-sm">{b.resource.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(b.start_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} –{' '}
-                        {new Date(b.end_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(b.start_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} –{' '}
+                        {new Date(b.end_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
                         {' · '}{b.customer_name}
                       </p>
                     </div>
@@ -180,7 +180,7 @@ export default function AdminDashboard() {
                       <td className="py-3 px-3 text-foreground">{b.customer_name}</td>
                       <td className="py-3 px-3 text-muted-foreground">{b.resource?.name}</td>
                       <td className="py-3 px-3 text-muted-foreground">
-                        {new Date(b.start_at).toLocaleDateString('en-GB')}
+                        {new Date(b.start_at).toLocaleDateString('en-GB', { timeZone: 'UTC' })}
                       </td>
                       <td className="py-3 px-3 font-medium">£{b.amount}</td>
                       <td className="py-3 px-3">{statusBadge(b.status)}</td>

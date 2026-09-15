@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       supabaseAdmin.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'pending_payment'),
       supabaseAdmin.from('inquiries').select('id', { count: 'exact', head: true }),
       supabaseAdmin.from('inquiries').select('id', { count: 'exact', head: true }).eq('status', 'new'),
-      supabaseAdmin.from('group_session_bookings').select('id', { count: 'exact', head: true })
+      supabaseAdmin.from('group_session_bookings').select('id', { count: 'exact', head: true }).eq('status', 'confirmed')
     ]);
 
     // Get revenue (confirmed bookings in period)
@@ -37,14 +37,12 @@ export async function GET(request: NextRequest) {
 
     const { data: groupRevenueData } = await supabaseAdmin
       .from('group_session_bookings')
-      .select('session:group_sessions(price)')
+      .select('amount')
+      .eq('payment_status', 'paid')
       .gte('created_at', startDateStr);
 
     const bookingRevenue = revenueData?.reduce((sum, b) => sum + parseFloat(b.amount || '0'), 0) || 0;
-    const groupRevenue = groupRevenueData?.reduce((sum, b) => {
-      const price = (b.session as any)?.price || '0';
-      return sum + parseFloat(price);
-    }, 0) || 0;
+    const groupRevenue = groupRevenueData?.reduce((sum, b) => sum + Number(b.amount || 0), 0) || 0;
 
     const totalRevenue = bookingRevenue + groupRevenue;
 

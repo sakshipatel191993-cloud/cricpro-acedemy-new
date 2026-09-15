@@ -10,8 +10,11 @@ export async function GET(request: NextRequest) {
       .from('group_session_bookings')
       .select(`
         *,
-        session:group_sessions(title, age_group)
+        session:group_sessions!inner(title, age_group, session_kind)
       `)
+      .neq('status', 'cancelled')
+      .neq('status', 'expired')
+      .eq('session.session_kind', searchParams.get('kind') === 'masterclass' ? 'masterclass' : 'group')
       .order('created_at', { ascending: false });
 
     if (sessionId) {
@@ -88,12 +91,6 @@ export async function POST(request: NextRequest) {
 
     if (bookingError) throw bookingError;
 
-    // Increment player count
-    await supabaseAdmin
-      .from('group_sessions')
-      .update({ current_players: session.current_players + 1 })
-      .eq('id', session_id);
-
     return NextResponse.json({ success: true, booking });
   } catch (error) {
     console.error('Admin group session booking create error:', error);
@@ -107,7 +104,11 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, ...updateData } = body;
+    const { id } = body;
+    const updateData: Record<string, unknown> = {};
+    for (const key of ['player_name', 'player_age', 'parent_name', 'parent_email', 'parent_phone', 'emergency_contact', 'medical_notes', 'skill_level']) {
+      if (body[key] !== undefined) updateData[key] = body[key];
+    }
 
     if (!id) {
       return NextResponse.json({ success: false, error: 'Booking ID is required' }, { status: 400 });
@@ -144,36 +145,14 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Get booking to update session player count
-    const { data: booking } = await supabaseAdmin
-      .from('group_session_bookings')
-      .select('session_id')
-      .eq('id', id)
-      .single();
-
-    // Delete the booking
-    const { error } = await supabaseAdmin
-      .from('group_session_bookings')
-      .delete()
-      .eq('id', id);
-
+    // Keep payment records for reconciliation and release the place atomically.
+    const { data: booking, error: lookupError } = await supabaseAdmin.from('group_session_bookings')
+      .select('id, status').eq('id', id).single();
+    if (lookupError || !booking) return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 });
+    if (booking.status === 'pending_payment') return NextResponse.json({ success: false, error: 'A payment is in progress. Wait for checkout to complete or expire.' }, { status: 409 });
+    const { error } = await supabaseAdmin.from('group_session_bookings')
+      .update({ status: 'cancelled' }).eq('id', id).neq('status', 'pending_payment');
     if (error) throw error;
-
-    // Decrement session player count
-    if (booking?.session_id) {
-      const { data: session } = await supabaseAdmin
-        .from('group_sessions')
-        .select('current_players')
-        .eq('id', booking.session_id)
-        .single();
-
-      if (session) {
-        await supabaseAdmin
-          .from('group_sessions')
-          .update({ current_players: Math.max(0, session.current_players - 1) })
-          .eq('id', booking.session_id);
-      }
-    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

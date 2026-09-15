@@ -26,6 +26,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 const navLinks = [
   { href: "/lane-hire", label: "Lane Hire" },
   { href: "/group-sessions", label: "Group Sessions" },
+  { href: "/masterclass", label: "Masterclass" },
   { href: "/bowling-machine", label: "Bowling Machine" },
   { href: "/side-arm", label: "Side Arm" },
   { href: "/coaching", label: "Coaching" },

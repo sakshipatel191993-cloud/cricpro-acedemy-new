@@ -1,59 +1,65 @@
+import { randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/services/supabase';
-import { sendGroupSessionConfirmation } from '@/lib/services/email';
+import { createCheckoutSession, getStripe, paymentsEnabled } from '@/lib/services/stripe';
+import { reconcileGroupCheckouts } from '@/lib/services/session-checkout';
 
 export async function POST(request: NextRequest) {
+  if (!paymentsEnabled) return NextResponse.json({ success: false, error: 'Online payments are currently unavailable. Please try again later.' }, { status: 503 });
+  let bookingId: string | undefined;
+  let stripeSessionId: string | undefined;
   try {
     const body = await request.json();
-    const {
-      session_id, player_name, player_age, parent_name, parent_email,
-      parent_phone, emergency_contact, medical_notes, skill_level
-    } = body;
-
-    if (!session_id || !player_name || !parent_name || !parent_email || !parent_phone) {
+    const { session_id, player_name, player_age, parent_name, parent_email, parent_phone, emergency_contact, medical_notes, skill_level } = body;
+    if (![session_id, player_name, parent_name, parent_email, parent_phone].every(value => typeof value === 'string' && value.trim())) {
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
     }
-
-    // Check session exists and has space
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('group_sessions')
-      .select('id, max_players, current_players, title, price')
-      .eq('id', session_id)
-      .eq('active', true)
-      .single();
-
-    if (sessionError || !session) {
-      return NextResponse.json({ success: false, error: 'Session not found or inactive' }, { status: 404 });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parent_email) || (player_age && (!Number.isInteger(Number(player_age)) || Number(player_age) < 1))) {
+      return NextResponse.json({ success: false, error: 'Enter a valid email and player age' }, { status: 400 });
     }
-
-    if (session.current_players >= session.max_players) {
-      return NextResponse.json({ success: false, error: 'Session is full' }, { status: 400 });
+    await reconcileGroupCheckouts(session_id);
+    const { data: session, error: sessionError } = await supabaseAdmin.from('group_sessions')
+      .select('*').eq('id', session_id).eq('active', true).single();
+    if (sessionError || !session) return NextResponse.json({ success: false, error: 'Session not found or inactive' }, { status: 404 });
+    if (!Number.isFinite(Number(session.price)) || Number(session.price) < 0.30) {
+      return NextResponse.json({ success: false, error: 'This session is not available for online payment. Please contact us.' }, { status: 400 });
     }
-
-    // Create booking
-    const { data: booking, error: bookingError } = await supabaseAdmin
-      .from('group_session_bookings')
-      .insert({ session_id, player_name, player_age: player_age ? parseInt(player_age) : null,
-        parent_name, parent_email, parent_phone, emergency_contact, medical_notes, skill_level })
-      .select()
-      .single();
-
-    if (bookingError) throw bookingError;
-
-    // Increment player count
-    await supabaseAdmin.from('group_sessions')
-      .update({ current_players: session.current_players + 1 })
-      .eq('id', session_id);
-
-    // Send confirmation email (non-blocking)
-    sendGroupSessionConfirmation(
-      { player_name, parent_name, parent_email },
-      { title: session.title, price: String(session.price) }
-    ).catch(console.error);
-
-    return NextResponse.json({ success: true, booking, message: 'Booking successful' });
+    const id = randomUUID();
+    const expiresAt = Math.floor(Date.now() / 1000) + 1860;
+    const { error: bookingError } = await supabaseAdmin.from('group_session_bookings').insert({
+      id, session_id, player_name, player_age: player_age ? Number(player_age) : null,
+      parent_name, parent_email, parent_phone, emergency_contact, medical_notes, skill_level,
+      status: 'pending_payment', payment_status: 'pending', amount: session.price,
+      expires_at: new Date(expiresAt * 1000).toISOString(),
+    });
+    if (bookingError) {
+      if (bookingError.code === '23514') return NextResponse.json({ success: false, error: 'Session is full or inactive' }, { status: 409 });
+      throw bookingError;
+    }
+    bookingId = id;
+    const checkout = await createCheckoutSession({
+      bookingId: id, bookingReference: id, bookingKind: 'group_session',
+      serviceType: session.session_kind === 'masterclass' ? 'masterclass' : 'group_session',
+      amount: String(session.price), customerEmail: parent_email, customerName: parent_name,
+      description: `${session.title} – ${session.schedule}`, expiresAt,
+    });
+    stripeSessionId = checkout.sessionId;
+    const { error: saveError } = await supabaseAdmin.from('group_session_bookings')
+      .update({ stripe_session_id: stripeSessionId }).eq('id', id);
+    if (saveError) throw saveError;
+    return NextResponse.json({ success: true, paymentUrl: checkout.url });
   } catch (error) {
-    console.error('Group session booking error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to complete booking' }, { status: 500 });
+    // A failed checkout must not leave a permanent reservation. If Stripe created
+    // one, expire it before releasing the place so it cannot subsequently be paid.
+    if (bookingId) {
+      try {
+        if (stripeSessionId) await getStripe().checkout.sessions.expire(stripeSessionId);
+        const { error: cancelError } = await supabaseAdmin.from('group_session_bookings')
+          .update({ status: 'cancelled', payment_status: 'failed' }).eq('id', bookingId).eq('status', 'pending_payment');
+        if (cancelError) throw cancelError;
+      } catch (cleanupError) { console.error('Checkout cleanup failed:', cleanupError); }
+    }
+    console.error('Session checkout error:', error);
+    return NextResponse.json({ success: false, error: 'Unable to start payment. Please try again.' }, { status: 500 });
   }
 }

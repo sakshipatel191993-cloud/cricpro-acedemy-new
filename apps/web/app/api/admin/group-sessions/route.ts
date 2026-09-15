@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
     let query = supabaseAdmin
       .from('group_sessions')
       .select('*')
+      .eq('session_kind', searchParams.get('kind') === 'masterclass' ? 'masterclass' : 'group')
       .order('schedule');
 
     if (active !== null) {
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, age_group, max_players, coach_name, schedule, price, active } = body;
+    const { title, age_group, max_players, coach_name, schedule, price, active, session_kind } = body;
 
     if (!title || !age_group || !max_players || !schedule || price === undefined) {
       return NextResponse.json(
@@ -41,9 +42,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (session_kind === 'masterclass') {
+      if (!coach_name || !Number.isFinite(Number(price)) || Number(price) < 0 || !Number.isInteger(Number(max_players)) || Number(max_players) < 1) {
+        return NextResponse.json({ success: false, error: 'A coach, valid price and capacity are required' }, { status: 400 });
+      }
+      const { data: coach, error: coachError } = await supabaseAdmin.from('coaches').select('id').eq('name', coach_name).single();
+      if (coachError || !coach) return NextResponse.json({ success: false, error: 'Select an existing coach or add one first' }, { status: 400 });
+    }
+
     const { data, error } = await supabaseAdmin
       .from('group_sessions')
       .insert({
+        session_kind: session_kind === 'masterclass' ? 'masterclass' : 'group',
         title,
         age_group,
         max_players,
@@ -71,7 +81,7 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, title, age_group, max_players, coach_name, schedule, price, active } = body;
+    const { id, title, age_group, max_players, coach_name, schedule, price, active, session_kind } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -80,13 +90,21 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    if (session_kind === 'masterclass') {
+      if (!coach_name || !Number.isFinite(Number(price)) || Number(price) < 0 || !Number.isInteger(Number(max_players)) || Number(max_players) < 1) {
+        return NextResponse.json({ success: false, error: 'A coach, valid price and capacity are required' }, { status: 400 });
+      }
+      const { data: coach, error: coachError } = await supabaseAdmin.from('coaches').select('id').eq('name', coach_name).single();
+      if (coachError || !coach) return NextResponse.json({ success: false, error: 'Select an existing coach or add one first' }, { status: 400 });
+    }
+
     const updateData: Record<string, unknown> = {};
     if (title) updateData.title = title;
     if (age_group) updateData.age_group = age_group;
     if (max_players) updateData.max_players = max_players;
     if (coach_name !== undefined) updateData.coach_name = coach_name;
     if (schedule) updateData.schedule = schedule;
-    if (price) updateData.price = price;
+    if (price !== undefined) updateData.price = price;
     if (active !== undefined) updateData.active = active;
 
     const { data, error } = await supabaseAdmin

@@ -213,11 +213,11 @@ function groupSessionConfirmationHtml(
     player_name: string
     parent_name: string
   },
-  session: { title: string; price: string }
+  session: { title: string; price: string; session_kind?: string }
 ) {
   return `
     <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1d2544">
-      <h2 style="color:#16a34a">Group Session Booking Confirmed!</h2>
+      <h2 style="color:#16a34a">${session.session_kind === 'masterclass' ? 'Masterclass' : 'Group Session'} Booking Confirmed!</h2>
       <p>Hi ${booking.parent_name},</p>
       <p>${booking.player_name} has been successfully registered for <strong>${session.title}</strong>.</p>
       <p>Session fee: <strong>£${session.price}</strong></p>
@@ -282,11 +282,11 @@ export async function sendAdminInquiryNotification(inquiry: {
 
 export async function sendGroupSessionConfirmation(
   booking: { player_name: string; parent_name: string; parent_email: string },
-  session: { title: string; price: string }
+  session: { title: string; price: string; session_kind?: string }
 ) {
   await send(
     booking.parent_email,
-    `Group Session Booking Confirmed | Cricpro Centre of Excellence`,
+    `${session.session_kind === 'masterclass' ? 'Masterclass' : 'Group Session'} Booking Confirmed | Cricpro Centre of Excellence`,
     groupSessionConfirmationHtml(booking, session)
   )
 }

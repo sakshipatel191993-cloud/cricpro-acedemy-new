@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createSessionSchedule } from '@/lib/session-schedule';
 import { supabaseAdmin } from '@/lib/services/supabase';
 
 export async function GET(request: NextRequest) {
@@ -33,6 +34,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const dateFields: Record<string, string> = {};
+    if (['session_date', 'start_time', 'end_time'].some(key => body[key] !== undefined)) {
+      try {
+        body.schedule = createSessionSchedule(body.session_date, body.start_time, body.end_time);
+        dateFields.session_date = body.session_date;
+        dateFields.start_time = body.start_time;
+        dateFields.end_time = body.end_time;
+      } catch (error) {
+        return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Invalid schedule' }, { status: 400 });
+      }
+    }
     const { title, age_group, max_players, coach_name, schedule, price, active, session_kind } = body;
 
     if (!title || !age_group || !max_players || !schedule || price === undefined) {
@@ -53,6 +65,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabaseAdmin
       .from('group_sessions')
       .insert({
+        ...dateFields,
         session_kind: session_kind === 'masterclass' ? 'masterclass' : 'group',
         title,
         age_group,
@@ -81,6 +94,17 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
+    const dateFields: Record<string, string> = {};
+    if (['session_date', 'start_time', 'end_time'].some(key => body[key] !== undefined)) {
+      try {
+        body.schedule = createSessionSchedule(body.session_date, body.start_time, body.end_time);
+        dateFields.session_date = body.session_date;
+        dateFields.start_time = body.start_time;
+        dateFields.end_time = body.end_time;
+      } catch (error) {
+        return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Invalid schedule' }, { status: 400 });
+      }
+    }
     const { id, title, age_group, max_players, coach_name, schedule, price, active, session_kind } = body;
 
     if (!id) {
@@ -98,7 +122,7 @@ export async function PATCH(request: NextRequest) {
       if (coachError || !coach) return NextResponse.json({ success: false, error: 'Select an existing coach or add one first' }, { status: 400 });
     }
 
-    const updateData: Record<string, unknown> = {};
+    const updateData: Record<string, unknown> = { ...dateFields };
     if (title) updateData.title = title;
     if (age_group) updateData.age_group = age_group;
     if (max_players) updateData.max_players = max_players;

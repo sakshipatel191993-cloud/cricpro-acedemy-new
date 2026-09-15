@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { createSessionSchedule } from '@/lib/session-schedule';
 
 interface GroupSession {
   id: string;
@@ -11,6 +12,9 @@ interface GroupSession {
   current_players: number;
   coach_name: string | null;
   schedule: string;
+  session_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
   price: string;
   active: boolean;
 }
@@ -52,6 +56,7 @@ export default function AdminSessionsPage({ masterclass = false }: { masterclass
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [scheduleChanged, setScheduleChanged] = useState(false);
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -59,6 +64,9 @@ export default function AdminSessionsPage({ masterclass = false }: { masterclass
     max_players: 10,
     coach_name: '',
     schedule: masterclass ? 'Sunday 1–3 pm' : '',
+    session_date: '',
+    start_time: masterclass ? '13:00' : '',
+    end_time: masterclass ? '15:00' : '',
     price: masterclass ? '40' : '',
     active: true
   });
@@ -101,8 +109,14 @@ export default function AdminSessionsPage({ masterclass = false }: { masterclass
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     try {
+      if (!editingId || scheduleChanged || formData.session_date) {
+        try { createSessionSchedule(formData.session_date, formData.start_time, formData.end_time); }
+        catch (error) { toast.error(error instanceof Error ? error.message : 'Choose a valid date and time'); return; }
+      }
       const method = editingId ? 'PATCH' : 'POST';
-      const body = editingId ? { id: editingId, ...formData } : formData;
+      const { session_date, start_time, end_time, ...details } = formData;
+      const scheduleFields = !editingId || scheduleChanged || session_date ? { session_date, start_time, end_time } : {};
+      const body = { ...details, ...scheduleFields, ...(editingId ? { id: editingId } : {}) };
 
       const res = await fetch(endpoint, {
         method,
@@ -173,12 +187,16 @@ export default function AdminSessionsPage({ masterclass = false }: { masterclass
 
   function editSession(session: GroupSession) {
     setEditingId(session.id);
+    setScheduleChanged(false);
     setFormData({
       title: session.title,
       age_group: session.age_group,
       max_players: session.max_players,
       coach_name: session.coach_name || '',
       schedule: session.schedule,
+      session_date: session.session_date || '',
+      start_time: session.start_time?.slice(0, 5) || '',
+      end_time: session.end_time?.slice(0, 5) || '',
       price: session.price,
       active: session.active
     });
@@ -188,12 +206,16 @@ export default function AdminSessionsPage({ masterclass = false }: { masterclass
   function resetForm() {
     setShowForm(false);
     setEditingId(null);
+    setScheduleChanged(false);
     setFormData({
       title: '',
       age_group: '',
       max_players: 10,
       coach_name: '',
       schedule: masterclass ? 'Sunday 1–3 pm' : '',
+    session_date: '',
+    start_time: masterclass ? '13:00' : '',
+    end_time: masterclass ? '15:00' : '',
       price: masterclass ? '40' : '',
       active: true
     });
@@ -291,17 +313,36 @@ export default function AdminSessionsPage({ masterclass = false }: { masterclass
                   className="w-full border rounded-lg px-3 py-2"
                 />) }
               </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Schedule</label>
-                <input
-                  type="text"
-                  value={formData.schedule}
-                  onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
-                  placeholder="e.g., Mon 4-5pm"
-                  className="w-full border rounded-lg px-3 py-2"
-                  required
-                />
-              </div>
+              <fieldset className="space-y-3">
+                <legend className="text-sm font-medium text-foreground mb-1">Schedule</legend>
+                {editingId && !formData.session_date && !scheduleChanged && (
+                  <p className="text-sm text-muted-foreground">Current schedule: {formData.schedule}. Choose a date and both times below to replace it.</p>
+                )}
+                <div>
+                  <label htmlFor="session-date" className="block text-sm font-medium mb-1">Session date</label>
+                  <input id="session-date" type="date" value={formData.session_date}
+                    onChange={e => { setScheduleChanged(true); setFormData({ ...formData, session_date: e.target.value }); }}
+                    required={!editingId || scheduleChanged || !!formData.session_date}
+                    className="w-full min-w-0 border rounded-lg px-3 py-2 bg-background text-foreground [color-scheme:light] dark:[color-scheme:dark]" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="session-start" className="block text-sm font-medium mb-1">Start time</label>
+                    <input id="session-start" type="time" value={formData.start_time}
+                      onChange={e => { setScheduleChanged(true); setFormData({ ...formData, start_time: e.target.value }); }}
+                      required={!editingId || scheduleChanged || !!formData.session_date}
+                      className="w-full min-w-0 border rounded-lg px-3 py-2 bg-background text-foreground [color-scheme:light] dark:[color-scheme:dark]" />
+                  </div>
+                  <div>
+                    <label htmlFor="session-end" className="block text-sm font-medium mb-1">End time</label>
+                    <input id="session-end" type="time" value={formData.end_time}
+                      onChange={e => { setScheduleChanged(true); setFormData({ ...formData, end_time: e.target.value }); }}
+                      required={!editingId || scheduleChanged || !!formData.session_date}
+                      className="w-full min-w-0 border rounded-lg px-3 py-2 bg-background text-foreground [color-scheme:light] dark:[color-scheme:dark]" />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">All times are UK local time (Europe/London).</p>
+              </fieldset>
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"

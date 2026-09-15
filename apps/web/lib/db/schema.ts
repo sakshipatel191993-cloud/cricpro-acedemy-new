@@ -66,6 +66,9 @@ export interface DbGroupSession {
   current_players: number;
   coach_name: string | null;
   schedule: string;
+  session_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
   price: string;
   active: boolean;
   created_at: string;

@@ -21,6 +21,8 @@ export async function createCheckoutSession(params: {
   customerEmail: string;
   customerName: string;
   description: string;
+  bookingKind?: 'group_session';
+  expiresAt?: number;
 }): Promise<{ sessionId: string; url: string }> {
   const stripe = getStripe();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
@@ -42,13 +44,15 @@ export async function createCheckoutSession(params: {
     }],
     metadata: {
       booking_id: params.bookingId,
+      ...(params.bookingKind ? { booking_kind: params.bookingKind, service_type: params.serviceType } : {}),
       booking_reference: params.bookingReference,
     },
     success_url: `${appUrl}/booking-success?session_id={CHECKOUT_SESSION_ID}&ref=${params.bookingReference}`,
-    cancel_url: `${appUrl}/booking-cancel?ref=${params.bookingReference}`,
-    expires_at: Math.floor(Date.now() / 1000) + 1800, // 30 min
-  });
+    cancel_url: `${appUrl}/booking-cancel?ref=${params.bookingReference}&service=${params.serviceType}`,
+    expires_at: params.expiresAt ?? Math.floor(Date.now() / 1000) + 1800, // 30 min
+  }, params.bookingKind ? { idempotencyKey: `group-checkout-${params.bookingId}` } : undefined);
 
+  if (!session.url) throw new Error('Checkout URL unavailable');
   return { sessionId: session.id, url: session.url! };
 }
 

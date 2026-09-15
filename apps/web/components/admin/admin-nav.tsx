@@ -11,6 +11,7 @@ const navItems = [
   { href: '/admin/resources', label: 'Resources', icon: Layers },
   { href: '/admin/blocked-slots', label: 'Blocked Slots', icon: Ban },
   { href: '/admin/group-sessions', label: 'Group Sessions', icon: Users },
+  { href: '/admin/masterclass', label: 'Masterclass', icon: Users },
   { href: '/admin/inquiries', label: 'Inquiries', icon: MessageSquare },
 ];
 

@@ -26,6 +26,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 const navLinks = [
   { href: "/lane-hire", label: "Lane Hire" },
   { href: "/group-sessions", label: "Group Sessions" },
+  { href: "/masterclass", label: "Masterclass" },
   { href: "/bowling-machine", label: "Bowling Machine" },
   { href: "/side-arm", label: "Side Arm" },
   { href: "/coaching", label: "Coaching" },
@@ -76,26 +77,27 @@ export function Header() {
           : "border-border/40 bg-background/70"
       }`}
     >
-      <div className="container px-4">
-        <div className="flex h-24 items-center justify-between">
+      <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 xl:px-8">
+        <div className="flex h-24 items-center justify-between gap-6">
           {/* Logo */}
-          <Link href="/" className="group flex items-center gap-2">
+          <Link href="/" className="group flex shrink-0 items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/crircpro-coe-logo.png"
               alt="Cricpro Centre of Excellence"
+              className="h-20 w-auto object-contain"
               height={100}
               width={100}
             />
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden items-center gap-6 lg:flex">
+          <nav className="hidden flex-1 items-center justify-center gap-5 min-[1440px]:flex">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="group relative text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                className="group relative shrink-0 whitespace-nowrap text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
                 {link.label}
                 <span className="absolute -bottom-0.5 left-0 h-px w-0 bg-primary transition-all duration-300 group-hover:w-full" />
@@ -104,7 +106,7 @@ export function Header() {
           </nav>
 
           {/* Desktop CTA */}
-          <div className="hidden items-center gap-3 lg:flex">
+          <div className="hidden shrink-0 items-center gap-2 min-[1440px]:flex">
             {!loading && !user && (
               <>
                 <Button asChild variant="ghost" size="sm">
@@ -122,7 +124,7 @@ export function Header() {
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                       {initials}
                     </span>
-                    {firstName}
+                    <span className="max-w-28 truncate">{firstName}</span>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
@@ -155,7 +157,7 @@ export function Header() {
 
           {/* Mobile Menu */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
-            <SheetTrigger asChild className="lg:hidden">
+            <SheetTrigger asChild className="min-[1440px]:hidden">
               <Button variant="ghost" size="icon-lg" aria-label="Open menu">
                 <AnimatePresence mode="wait" initial={false}>
                   {isOpen ? (

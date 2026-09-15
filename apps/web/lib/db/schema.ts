@@ -58,6 +58,7 @@ export interface DbBlockedSlot {
 
 // Group sessions table
 export interface DbGroupSession {
+  session_kind: 'group' | 'masterclass';
   id: string;
   title: string;
   age_group: string;
@@ -65,6 +66,9 @@ export interface DbGroupSession {
   current_players: number;
   coach_name: string | null;
   schedule: string;
+  session_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
   price: string;
   active: boolean;
   created_at: string;
@@ -72,6 +76,11 @@ export interface DbGroupSession {
 
 // Group session bookings table
 export interface DbGroupSessionBooking {
+  status: 'pending_payment' | 'confirmed' | 'expired' | 'cancelled';
+  payment_status: 'unpaid' | 'pending' | 'paid' | 'failed';
+  amount: string | null;
+  stripe_session_id: string | null;
+  expires_at: string | null;
   id: string;
   session_id: string;
   player_name: string;

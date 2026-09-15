@@ -1,0 +1,37 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const ts = require('typescript');
+const root = path.resolve(__dirname, '../../..');
+function load(file, dependencies) {
+ const source = fs.readFileSync(path.join(root, file),'utf8');
+ const mod = {exports:{}};
+ new Function('require','module','exports',ts.transpile(source,{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}))(name => {
+  if (name in dependencies) return dependencies[name];
+  throw new Error('Unexpected dependency '+name);
+ },mod,mod.exports);
+ return mod.exports;
+}
+(async()=>{
+ let checkoutCalls=0, emails=0, reservationCalls=0, checkoutAmount;
+ const session={id:'class-1',title:'Masterclass',price:40,session_kind:'masterclass',schedule:'Sunday 1–3 pm',current_players:0,max_players:12};
+ const query={select(){return this},eq(){return this},insert(values){reservationCalls++;assert.equal(values.status,'pending_payment');assert.equal(values.payment_status,'pending');assert.equal(values.amount,40);return this},update(){return this},single:async()=>({data:session}),then(resolve){return Promise.resolve({data:[]}).then(resolve)}};
+ const db={from:()=>query};
+ const route=load('apps/web/app/api/group-session-bookings/route.ts',{
+  'node:crypto':require('node:crypto'),
+  'next/server':{NextResponse:{json:(body,init)=>({body,status:init?.status??200})}},
+  '@/lib/services/supabase':{supabaseAdmin:db,isSupabaseConfigured:true},
+  '@/lib/services/email':{sendGroupSessionConfirmation:async()=>{emails++}},
+  '@/lib/services/stripe':{paymentsEnabled:true,createCheckoutSession:async(params)=>{checkoutCalls++;checkoutAmount=params.amount;return {sessionId:'cs_test',url:'https://checkout.stripe.com/test'}},getStripe:()=>({checkout:{sessions:{expire:async()=>({})}}})},
+  '@/lib/services/session-checkout':{reconcileGroupCheckouts:async()=>{}},
+  '@/lib/utils/rate-limit':{rateLimit:()=>({success:true})},
+ });
+ const response=await route.POST({json:async()=>({session_id:'class-1',player_name:'Player',parent_name:'Test',parent_email:'test@example.invalid',parent_phone:'0123456789',amount:1}),headers:new Headers()});
+ assert.equal(response.status,200);
+ assert.equal(checkoutCalls,1,'Booking must create Stripe checkout');
+ assert.equal(emails,0,'Unpaid booking must not send confirmation');
+ assert.equal(reservationCalls,1,'Reserve a pending place before redirecting to payment');
+ assert.equal(checkoutAmount,'40','Charge the stored class price, ignoring client-supplied amount');
+ assert.equal(response.body.paymentUrl,'https://checkout.stripe.com/test');
+ console.log('PASS: booking starts checkout without confirming or emailing');
+})().catch(error=>{console.error(error);process.exit(1)});

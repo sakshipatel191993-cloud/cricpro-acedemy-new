@@ -1,9 +1,12 @@
+import type Stripe from 'stripe';
+import { confirmGroupBooking } from '@/lib/services/confirm-group-booking';
+import { expireGroupCheckout } from '@/lib/services/session-checkout';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/services/supabase';
 import { verifyWebhookSignature } from '@/lib/services/stripe';
 import { confirmBooking } from '@/lib/services/confirm-booking';
 
-export const config = { api: { bodyParser: false } };
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,30 +26,33 @@ export async function POST(request: NextRequest) {
     }
 
     switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object as { id: string; metadata?: { booking_id?: string } };
+      case 'checkout.session.completed':
+      case 'checkout.session.async_payment_succeeded': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        if (session.payment_status !== 'paid') break;
         const bookingId = session.metadata?.booking_id;
-
         if (!bookingId) break;
-
-        try {
+        if (session.metadata?.booking_kind === 'group_session') {
+          await confirmGroupBooking(session);
+        } else {
           await confirmBooking(bookingId, session.id);
-        } catch (error) {
-          console.error('Failed to confirm booking:', error);
         }
+        // Let failures return 500 so Stripe retries delivery.
         break;
       }
-
-      case 'checkout.session.expired': {
-        const session = event.data.object as { metadata?: { booking_id?: string } };
+      case 'checkout.session.expired':
+      case 'checkout.session.async_payment_failed': {
+        const session = event.data.object as Stripe.Checkout.Session;
         const bookingId = session.metadata?.booking_id;
         if (!bookingId) break;
-
-        await supabaseAdmin
-          .from('bookings')
-          .update({ status: 'cancelled', payment_status: 'failed' })
-          .eq('id', bookingId)
-          .eq('status', 'pending_payment');
+        if (session.metadata?.booking_kind === 'group_session') {
+          await expireGroupCheckout(bookingId, session.id);
+        } else {
+          const { error } = await supabaseAdmin.from('bookings')
+            .update({ status: 'cancelled', payment_status: 'failed' })
+            .eq('id', bookingId).eq('status', 'pending_payment');
+          if (error) throw error;
+        }
         break;
       }
 

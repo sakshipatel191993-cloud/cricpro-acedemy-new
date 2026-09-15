@@ -16,39 +16,14 @@ export function StickyCTA() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  if (pathname === "/contact" || pathname === "/about") return null;
+  // These pages already contain the booking/enquiry flow or its result.
+  const hasOwnBookingFlow = [
+    "/lane-hire", "/group-sessions", "/masterclass", "/bowling-machine",
+    "/side-arm", "/coaching", "/birthday-parties", "/booking-confirm",
+    "/booking-success", "/booking-cancel",
+  ].some(route => pathname === route || pathname.startsWith(`${route}/`));
 
-  const getCTAText = () => {
-    if (pathname === "/lane-hire") return "Book Now";
-    if (pathname === "/group-sessions") return "Join Session";
-    if (pathname === "/bowling-machine") return "Book Machine";
-    if (pathname === "/side-arm") return "Book Session";
-    if (pathname === "/coaching") return "Enquire Now";
-    if (pathname === "/birthday-parties") return "Plan Party";
-    return "Book a Lane";
-  };
-
-  const getCTALink = () => {
-    if (pathname.startsWith("/lane-hire")) return "/lane-hire";
-    if (pathname.startsWith("/group-sessions")) return "/group-sessions";
-    if (pathname.startsWith("/bowling-machine")) return "/bowling-machine";
-    if (pathname.startsWith("/side-arm")) return "/side-arm";
-    if (pathname.startsWith("/coaching")) return "/coaching";
-    if (pathname.startsWith("/birthday-parties")) return "/birthday-parties";
-    return "/lane-hire";
-  };
-
-  const ctaLink = getCTALink();
-
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    // Already on the target page — jump straight to the booking form.
-    if (pathname === ctaLink) {
-      e.preventDefault();
-      document
-        .getElementById("booking-form")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  };
+  if (hasOwnBookingFlow || pathname === "/contact" || pathname === "/about") return null;
 
   return (
     <>
@@ -63,8 +38,8 @@ export function StickyCTA() {
           >
             <div className="bg-background/95 backdrop-blur-md border-t border-primary/20 px-4 py-3 shadow-xl">
               <Button asChild className="w-full h-12 text-base font-semibold shadow-lg">
-                <Link href={`${ctaLink}#booking-form`} onClick={handleClick}>
-                  {getCTAText()}
+                <Link href="/lane-hire#booking-form">
+                  Book a Lane
                 </Link>
               </Button>
             </div>

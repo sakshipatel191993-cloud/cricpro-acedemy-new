@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/services/supabase';
 import { getStripe } from '@/lib/services/stripe';
+import { confirmGroupBooking } from '@/lib/services/confirm-group-booking';
 import { confirmBooking } from '@/lib/services/confirm-booking';
 
 /**
@@ -26,6 +27,18 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Payment has not been completed' },
         { status: 402 }
       );
+    }
+
+    if (session.metadata?.booking_kind === 'group_session') {
+      const booking = await confirmGroupBooking(session);
+      return NextResponse.json({ success: true, booking: {
+        booking_reference: booking.id,
+        service_type: booking.session.session_kind === 'masterclass' ? 'masterclass' : 'group_session',
+        resource_name: booking.session.title,
+        schedule: booking.session.schedule,
+        coach_name: booking.session.coach_name,
+        amount: booking.amount,
+      } });
     }
 
     let bookingId = session.metadata?.booking_id;

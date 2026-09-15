@@ -2,7 +2,9 @@ import Link from 'next/link';
 import { XCircle } from 'lucide-react';
 import { Button } from '@workspace/ui/components/button';
 
-export default function BookingCancelPage() {
+export default async function BookingCancelPage({ searchParams }: { searchParams: Promise<{ service?: string }> }) {
+  const { service } = await searchParams;
+  const returnPath = service === 'masterclass' ? '/masterclass' : service === 'group_session' ? '/group-sessions' : '/lane-hire';
   return (
     <main className="min-h-screen flex items-center justify-center px-4">
       <div className="max-w-md w-full text-center">
@@ -18,7 +20,7 @@ export default function BookingCancelPage() {
         </p>
         <div className="space-y-3">
           <Button asChild className="w-full">
-            <Link href="/lane-hire">Try Again</Link>
+            <Link href={returnPath}>Try Again</Link>
           </Button>
           <Button asChild variant="outline" className="w-full">
             <Link href="/">Back to Home</Link>

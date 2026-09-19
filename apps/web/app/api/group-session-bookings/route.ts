@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/services/supabase';
 import { createCheckoutSession, getStripe, paymentsEnabled } from '@/lib/services/stripe';
 import { reconcileGroupCheckouts } from '@/lib/services/session-checkout';
+import { isSessionAgeAllowed, sessionAgeRange } from '@/lib/session-age';
 
 export async function POST(request: NextRequest) {
   if (!paymentsEnabled) return NextResponse.json({ success: false, error: 'Online payments are currently unavailable. Please try again later.' }, { status: 503 });
@@ -17,10 +18,16 @@ export async function POST(request: NextRequest) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parent_email) || (player_age && (!Number.isInteger(Number(player_age)) || Number(player_age) < 1))) {
       return NextResponse.json({ success: false, error: 'Enter a valid email and player age' }, { status: 400 });
     }
-    await reconcileGroupCheckouts(session_id);
     const { data: session, error: sessionError } = await supabaseAdmin.from('group_sessions')
       .select('*').eq('id', session_id).eq('active', true).single();
     if (sessionError || !session) return NextResponse.json({ success: false, error: 'Session not found or inactive' }, { status: 404 });
+    if (!sessionAgeRange(session.age_group)) {
+      return NextResponse.json({ success: false, error: 'This session has no valid age group. Please contact us before booking.' }, { status: 400 });
+    }
+    if (!isSessionAgeAllowed(player_age, session.age_group)) {
+      return NextResponse.json({ success: false, error: `Player age must match this session's age group: ${session.age_group}` }, { status: 400 });
+    }
+    await reconcileGroupCheckouts(session_id);
     if (!Number.isFinite(Number(session.price)) || Number(session.price) < 0.30) {
       return NextResponse.json({ success: false, error: 'This session is not available for online payment. Please contact us.' }, { status: 400 });
     }

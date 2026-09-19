@@ -2,7 +2,7 @@ import { Resend } from "resend"
 import { LOCATION } from "@/lib/location"
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY
-const FROM = process.env.EMAIL_FROM ?? "info@cricprocoe.com"
+const FROM = process.env.EMAIL_FROM ?? "noreply@cricprocoe.com"
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "info@cricprocoe.com"
 
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null
@@ -16,7 +16,7 @@ async function send(
   to: string,
   subject: string,
   html: string,
-  replyTo?: string
+  replyTo: string = ADMIN_EMAIL
 ): Promise<boolean> {
   if (!resend) {
     console.warn(

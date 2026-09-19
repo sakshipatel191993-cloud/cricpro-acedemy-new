@@ -7,7 +7,7 @@ import { FadeIn } from "@/components/motion/fade-in";
 
 const stats = [
   { value: 4, suffix: "", label: "Indoor Lanes", desc: "Professional nets" },
-  { value: 12, suffix: "hrs", label: "Weekend Access", desc: "9AM–9PM Sat & Sun" },
+  { value: 14, suffix: "hrs", label: "Weekend Access", desc: "9AM–11PM Sat & Sun" },
   { value: 7, suffix: "", label: "Days a Week", desc: "Always open" },
   { value: 100, suffix: "%", label: "Expert Coaches", desc: "Qualified team" },
 ];

@@ -82,6 +82,12 @@ Use a separate feature flag for admin alerts. Marketing is out of scope.
 
 ## Test command
 
+Local interactive demo: `http://localhost:3000/dev/whatsapp-demo` while running
+`next dev`. Fictional data only, with unchecked opt-in and simulated delivery,
+failure, STOP and unpaid scenarios. Uses the real template transport with an
+injected fake provider (no network, database, checkout or email side effects).
+Both the page and endpoint are unavailable in production; live flags stay off.
+
 `node --test apps/web/lib/services/whatsapp.test.cjs`
 
 Tests mock Meta requests; no real WhatsApp messages are sent.

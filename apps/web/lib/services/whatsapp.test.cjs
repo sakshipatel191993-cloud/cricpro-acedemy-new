@@ -73,6 +73,30 @@ test('API consent is explicit, server stamped and disabled by default', () => {
 })
 
 const jobsApi = load('whatsapp-jobs.ts', { './supabase': { supabaseAdmin: null }, './whatsapp': api })
+const demoApi = load('whatsapp-demo.ts', { './whatsapp': api })
+test('demo never uses the network and handles fictional delivery, failure, consent and STOP', async () => {
+  const originalFetch = global.fetch
+  global.fetch = () => { throw new Error('Real network forbidden in demo') }
+  try {
+    assert.equal((await demoApi.runWhatsAppDemo(true, 'delivered')).status, 'delivered')
+    assert.equal((await demoApi.runWhatsAppDemo(true, 'failed')).status, 'failed')
+    assert.equal((await demoApi.runWhatsAppDemo(false, 'delivered')).status, 'skipped')
+    assert.equal((await demoApi.runWhatsAppDemo(true, 'stopped')).status, 'skipped')
+    assert.equal((await demoApi.runWhatsAppDemo(true, 'unpaid')).status, 'skipped')
+  } finally { global.fetch = originalFetch }
+})
+test('demo endpoint is inaccessible in production and requires local same-origin requests', async () => {
+  const route = load('../../app/api/dev/whatsapp-demo/route.ts', { '@/lib/services/whatsapp-demo': demoApi })
+  const previous = process.env.NODE_ENV
+  const req = (origin = 'http://localhost:3000') => new Request('http://localhost:3000/api/dev/whatsapp-demo', { method: 'POST', headers: { origin }, body: JSON.stringify({ consented: true, scenario: 'delivered' }) })
+  try {
+    process.env.NODE_ENV = 'production'
+    assert.equal((await route.POST(req())).status, 404)
+    process.env.NODE_ENV = 'development'
+    assert.equal((await route.POST(req('https://example.com'))).status, 403)
+    assert.equal((await route.POST(req())).status, 200)
+  } finally { if (previous === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = previous }
+})
 const webhookApi = load('whatsapp-webhook.ts', { './whatsapp': api })
 function booking() {
   return { id: 'booking-1', booking_reference: 'TEST-1', status: 'confirmed', payment_status: 'paid',

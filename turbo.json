@@ -1,6 +1,24 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
+  "globalEnv": [
+    "ADMIN_EMAIL",
+    "ADMIN_PASSWORD",
+    "ADMIN_SECRET",
+    "DATABASE_URL",
+    "EMAIL_FROM",
+    "NEXT_PUBLIC_APP_URL",
+    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "PAYMENTS_ENABLED",
+    "RESEND_ALLOWED_SENDERS",
+    "RESEND_API_KEY",
+    "RESEND_WEBHOOK_SECRET",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "SUPABASE_SERVICE_ROLE_KEY"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

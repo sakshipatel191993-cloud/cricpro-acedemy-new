@@ -230,6 +230,26 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
+-- Resend webhook event ledger (idempotency + delivery audit)
+CREATE TABLE IF NOT EXISTS resend_webhook_events (
+    id TEXT PRIMARY KEY,
+    event_type TEXT NOT NULL,
+    resend_email_id TEXT,
+    status TEXT NOT NULL DEFAULT 'processing'
+        CHECK (status IN ('processing', 'processed', 'ignored', 'failed')),
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    error TEXT,
+    received_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    processed_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS resend_webhook_events_email_id_idx
+    ON resend_webhook_events (resend_email_id)
+    WHERE resend_email_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS resend_webhook_events_received_at_idx
+    ON resend_webhook_events (received_at DESC);
+
 -- =====================================================
 -- EXCLUSION CONSTRAINT (Double-booking prevention)
 -- =====================================================
@@ -260,6 +280,10 @@ ALTER TABLE group_session_bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE inquiries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE email_jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE resend_webhook_events ENABLE ROW LEVEL SECURITY;
+
+REVOKE ALL ON TABLE resend_webhook_events FROM anon, authenticated;
+GRANT SELECT, INSERT, UPDATE ON TABLE resend_webhook_events TO service_role;
 
 -- =====================================================
 -- SEEDS - Default resources

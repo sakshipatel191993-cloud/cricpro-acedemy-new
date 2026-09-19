@@ -131,3 +131,14 @@ export interface DbAuditLog {
   metadata: string | null;
   created_at: string;
 }
+
+export interface DbResendWebhookEvent {
+  id: string;
+  event_type: string;
+  resend_email_id: string | null;
+  status: 'processing' | 'processed' | 'ignored' | 'failed';
+  metadata: Record<string, unknown>;
+  error: string | null;
+  received_at: string;
+  processed_at: string | null;
+}

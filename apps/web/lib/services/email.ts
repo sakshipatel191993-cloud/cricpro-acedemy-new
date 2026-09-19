@@ -2,8 +2,8 @@ import { Resend } from "resend"
 import { LOCATION } from "@/lib/location"
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY
-const FROM = process.env.EMAIL_FROM ?? "noreply@nextgencricket.co.uk"
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "admin@nextgencricket.co.uk"
+const FROM = process.env.EMAIL_FROM ?? "info@cricprocoe.com"
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "info@cricprocoe.com"
 
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/services/supabase';
+import { isPeakHour } from '@/lib/hours';
 
 interface TimeSlot {
   time: string;
@@ -174,9 +175,9 @@ async function generateSlotsForDate(
         if (applicableRule) {
           price = applicableRule.price;
         } else {
-          // Default pricing: weekends are all peak; weekdays peak from 4 PM.
+          // Follow the published weekday/weekend rate boundaries.
           const hour = currentHour;
-          const isPeak = dayOfWeek === 0 || dayOfWeek === 6 || hour >= 16;
+          const isPeak = isPeakHour(dayOfWeek, hour);
           price = isPeak ? '25.00' : '15.00'; // Default peak/off-peak
         }
       }

@@ -116,7 +116,7 @@ export default function AboutPage() {
               <Clock className="mb-3 h-8 w-8 text-primary" />
               <h3 className="mb-2 font-semibold">Flexible Hours</h3>
               <p className="text-sm text-muted-foreground">
-                Weekdays 12–11 PM, weekends 9 AM–9 PM
+                Weekdays 9 AM–10 PM, weekends 9 AM–11 PM
               </p>
             </Card>
             <Card className="p-6">

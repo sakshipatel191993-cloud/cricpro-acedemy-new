@@ -19,8 +19,12 @@ import {
 } from "@workspace/ui/components/select"
 import { Textarea } from "@workspace/ui/components/textarea"
 import Link from "next/link"
-import { ArrowLeft, Award, User, Target, Clock, Star } from "lucide-react"
+import { ArrowLeft, Award, User, Target, Clock } from "lucide-react"
 import { Metadata } from "next"
+import { supabaseAdmin } from "@/lib/services/supabase"
+
+// Read the admin-managed directory on every request, not only at deployment.
+export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
   title: "One-to-One Coaching | Cricpro Centre of Excellence",
@@ -28,7 +32,17 @@ export const metadata: Metadata = {
     "Personalised cricket coaching from experienced coaches. Tailored training programmes to accelerate your development.",
 }
 
-export default function CoachingPage() {
+export default async function CoachingPage() {
+  let coaches: { id: string; name: string }[] = []
+  let coachesUnavailable = false
+  try {
+    const { data, error } = await supabaseAdmin.from('coaches').select('id, name').order('name')
+    if (error) throw error
+    coaches = data ?? []
+  } catch {
+    coachesUnavailable = true
+    console.error('Unable to load public coaching directory')
+  }
   return (
     <main className="min-h-screen">
       {/* Hero */}
@@ -94,19 +108,34 @@ export default function CoachingPage() {
         </div>
       </section>
 
-      {/* Pricing Coming Soon */}
+      {/* Live coaching and admin-managed coach directory */}
       <section className="bg-muted/20 py-12 md:py-16">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-2xl text-center">
             <Card className="border-primary">
               <CardContent className="p-8">
-                <Badge className="mb-4">Coming Soon</Badge>
+                <Badge className="mb-4">Coaching Now Available</Badge>
                 <h3 className="mb-4 text-2xl font-bold">One-to-One Coaching</h3>
                 <p className="mb-6 text-muted-foreground">
-                  We're finalising our coaching programmes and pricing. Submit
-                  an enquiry to be notified when we launch and get priority
-                  booking.
+                  One-to-one coaching is now live. Enquire below for session
+                  availability and pricing. You don't need to choose a coach
+                  to make an enquiry.
                 </p>
+                <h4 className="mb-3 text-lg font-semibold">Available Coaches</h4>
+                {coaches.length > 0 ? (
+                  <ul className="mb-6 flex flex-wrap justify-center gap-3" aria-label="Available coaches">
+                    {coaches.map(coach => (
+                      <li key={coach.id} className="rounded-lg border bg-background px-5 py-3 font-medium">
+                        {coach.name}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mb-6 text-sm text-muted-foreground">
+                    {coachesUnavailable ? "We couldn't load the coach list right now. Please enquire below and we'll help you find a coach." : "Please enquire below for our latest coach availability."}
+                  </p>
+                )}
+                <Button asChild><Link href="#booking-form">Enquire About Coaching</Link></Button>
               </CardContent>
             </Card>
           </div>

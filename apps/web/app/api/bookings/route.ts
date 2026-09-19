@@ -7,6 +7,7 @@ import {
 import { paymentsEnabled, createCheckoutSession } from "@/lib/services/stripe"
 import { rateLimit } from "@/lib/utils/rate-limit"
 import type { DbBooking } from "@/lib/db/schema"
+import { isPeakHour } from "@/lib/hours"
 
 const notConfigured = () =>
   NextResponse.json(
@@ -207,8 +208,7 @@ export async function POST(request: NextRequest) {
     const startDate = new Date(startAt)
     const hour = startDate.getHours()
     const dayOfWeek = startDate.getDay()
-    const isPeak = hour >= 16 && hour < 22
-    const isOffPeak = (hour >= 12 && hour < 16) || hour >= 22
+    const isPeak = isPeakHour(dayOfWeek, hour)
     let pricePerHour: number
     if (serviceType === "bowling_machine") {
       pricePerHour = isPeak ? 32 : 22

@@ -44,6 +44,12 @@ test('transactional templates are branded, escaped, and have correct reply routi
   assert.match(messages[3].html, /Junior &lt;Coaching&gt;/)
   assert.match(messages[4].html, /Masterclass Booking Confirmed!/)
   assert.match(messages[5].html, /Booking Confirmed!/)
+  for (const index of [3, 4, 5]) {
+    assert.match(messages[index].html, /href="https:\/\/maps.google.com"/)
+    assert.match(messages[index].html, /Open in Google Maps/)
+    assert.match(messages[index].html, /href="https:\/\/maps.apple.com"/)
+    assert.match(messages[index].html, /Marsh Hill, B23 7EY/)
+  }
   assert.equal(messages[5].attachments.length, 1, 'Unpaid bookings must not receive a payment receipt')
   assert.throws(() => documentExports.verifiedPayment({ payment_status: 'unpaid' }), /verified paid/)
   const payment = documentExports.verifiedPayment({ payment_status: 'paid', currency: 'gbp', amount_total: 2200, payment_intent: 'pi_test_preview', livemode: false })
@@ -60,4 +66,6 @@ test('transactional templates are branded, escaped, and have correct reply routi
   }
   await exports.sendGroupSessionConfirmation({ id: 'GROUP-TEST', player_name: 'Player', parent_name: 'Parent', parent_email: inquiry.email }, { title: 'Junior session', price: '22', schedule: 'Saturday, 10:00 - 11:00' }, payment)
   assert.equal(messages[7].attachments.length, 2)
+  assert.match(messages[7].html, /Saturday, 10:00 - 11:00/)
+  assert.match(messages[7].html, /Open in Google Maps/)
 })

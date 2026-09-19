@@ -213,6 +213,18 @@ function brandedEmail(title: string, intro: string, rows: Array<[string, string]
   </table></td></tr></table></body></html>`
 }
 
+// Reuse the original booking email's venue and map destinations for every
+// customer confirmation, including group sessions and masterclasses.
+function locationDirectionsHtml() {
+  return `<div style="margin:24px 0 0;padding:20px;background-color:#f4f5f1;border-radius:8px;">
+    <h2 style="margin:0 0 8px;font-size:18px;color:#1d2544;">Where to find us</h2>
+    <p style="margin:0;font-size:16px;color:#1d2544;font-weight:700;">${escapeHtml(LOCATION.name)}</p>
+    <p style="margin:4px 0 12px;font-size:16px;color:#1d2544;">${escapeHtml(LOCATION.address)}</p>
+    <a href="${escapeHtml(LOCATION.googleMapsUrl)}" style="display:inline-block;padding:12px 16px;margin:4px 8px 4px 0;background-color:#15803d;border-radius:6px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;">Open in Google Maps</a>
+    <a href="${escapeHtml(LOCATION.appleMapsUrl)}" style="display:inline-block;padding:12px 0;color:#166534;font-size:15px;font-weight:600;text-decoration:underline;">Open in Apple Maps</a>
+  </div>`
+}
+
 function inquiryConfirmationHtml(name: string, type: string) {
   const subject =
     type === "birthday_party"
@@ -228,9 +240,9 @@ function groupSessionConfirmationHtml(
     player_name: string
     parent_name: string
   },
-  session: { title: string; price: string; session_kind?: string }
+  session: { title: string; price: string; session_kind?: string; schedule?: string }
 ) {
-  return brandedEmail(`${session.session_kind === 'masterclass' ? 'Masterclass' : 'Group Session'} Booking Confirmed!`, `Hi ${booking.parent_name}, your player's registration is confirmed.`, [["Player", booking.player_name], ["Session", session.title], ["Session fee", `£${Number(session.price).toFixed(2)}`]], '<p style="margin:24px 0 0;">Please arrive 10 minutes before the session starts. Full cricket kit is recommended.</p>')
+  return brandedEmail(`${session.session_kind === 'masterclass' ? 'Masterclass' : 'Group Session'} Booking Confirmed!`, `Hi ${booking.parent_name}, your player's registration is confirmed.`, [["Player", booking.player_name], ["Session", session.title], ...(session.schedule ? [["Schedule", session.schedule] as [string, string]] : []), ["Session fee", `£${Number(session.price).toFixed(2)}`]], locationDirectionsHtml() + '<p style="margin:24px 0 0;">Please arrive 10 minutes before the session starts. Full cricket kit is recommended.</p>')
 }
 
 // ─── Exported functions ───────────────────────────────────────────────────────

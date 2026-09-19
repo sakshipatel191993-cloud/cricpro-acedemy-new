@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/services/supabase';
 import { sendInquiryConfirmation, sendAdminInquiryNotification } from '@/lib/services/email';
 import type { DbInquiry } from '@/lib/db/schema';
+import { whatsappConsentFields } from '@/lib/services/whatsapp';
 
 export async function GET(request: NextRequest) {
   try {
@@ -47,7 +48,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Invalid email format' }, { status: 400 });
     }
 
-    const inquiry: Partial<DbInquiry> = { type, name, email, phone: phone || null, message, status: 'new' };
+    let whatsappFields;
+    try { whatsappFields = whatsappConsentFields(phone, body.whatsappConsent); }
+    catch (error) { return NextResponse.json({ success: false, error: (error as Error).message }, { status: 400 }); }
+    const inquiry: Partial<DbInquiry> = { ...whatsappFields, type, name, email, phone: phone || null, message, status: 'new' };
 
     const { data, error } = await supabaseAdmin.from('inquiries').insert(inquiry).select().single();
     if (error) throw error;

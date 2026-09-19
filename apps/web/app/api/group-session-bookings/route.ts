@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/services/supabase';
 import { createCheckoutSession, getStripe, paymentsEnabled } from '@/lib/services/stripe';
 import { reconcileGroupCheckouts } from '@/lib/services/session-checkout';
+import { whatsappConsentFields } from '@/lib/services/whatsapp';
 
 export async function POST(request: NextRequest) {
   if (!paymentsEnabled) return NextResponse.json({ success: false, error: 'Online payments are currently unavailable. Please try again later.' }, { status: 503 });
@@ -17,6 +18,9 @@ export async function POST(request: NextRequest) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parent_email) || (player_age && (!Number.isInteger(Number(player_age)) || Number(player_age) < 1))) {
       return NextResponse.json({ success: false, error: 'Enter a valid email and player age' }, { status: 400 });
     }
+    let whatsappFields;
+    try { whatsappFields = whatsappConsentFields(parent_phone, body.whatsappConsent); }
+    catch (error) { return NextResponse.json({ success: false, error: (error as Error).message }, { status: 400 }); }
     await reconcileGroupCheckouts(session_id);
     const { data: session, error: sessionError } = await supabaseAdmin.from('group_sessions')
       .select('*').eq('id', session_id).eq('active', true).single();
@@ -27,6 +31,7 @@ export async function POST(request: NextRequest) {
     const id = randomUUID();
     const expiresAt = Math.floor(Date.now() / 1000) + 1860;
     const { error: bookingError } = await supabaseAdmin.from('group_session_bookings').insert({
+      ...whatsappFields,
       id, session_id, player_name, player_age: player_age ? Number(player_age) : null,
       parent_name, parent_email, parent_phone, emergency_contact, medical_notes, skill_level,
       status: 'pending_payment', payment_status: 'pending', amount: session.price,

@@ -7,6 +7,7 @@ import {
 import { paymentsEnabled, createCheckoutSession } from "@/lib/services/stripe"
 import { rateLimit } from "@/lib/utils/rate-limit"
 import type { DbBooking } from "@/lib/db/schema"
+import { whatsappConsentFields } from "@/lib/services/whatsapp"
 
 const notConfigured = () =>
   NextResponse.json(
@@ -115,6 +116,10 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    let whatsappFields;
+    try { whatsappFields = whatsappConsentFields(customerPhone, body.whatsappConsent); }
+    catch (error) { return NextResponse.json({ success: false, error: (error as Error).message }, { status: 400 }); }
 
     // Bowling machine and side arm use a lane as the underlying resource
     const laneBasedServices = ["bowling_machine", "side_arm"]
@@ -230,6 +235,7 @@ export async function POST(request: NextRequest) {
     const status = paymentsEnabled ? "pending_payment" : "confirmed"
 
     const booking: Partial<DbBooking> = {
+      ...whatsappFields,
       booking_reference: bookingReference,
       resource_id: resolvedResourceId,
       service_type: serviceType,

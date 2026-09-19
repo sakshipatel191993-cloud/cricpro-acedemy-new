@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef, useState, type FormEvent, type ReactNode } from "react"
+import { WhatsAppOptIn } from "@/components/whatsapp-opt-in"
 
 export function ContactForm({ children, enquiryType }: { children: ReactNode; enquiryType?: "coaching" | "birthday_party" }) {
   const submitting = useRef(false)
@@ -18,7 +19,7 @@ export function ContactForm({ children, enquiryType }: { children: ReactNode; en
     try {
       const subject = String(fields.get("subject") || "general")
       const details = Array.from(fields.entries())
-        .filter(([key, value]) => !["name", "email", "phone", "subject", "message"].includes(key) && String(value).trim())
+        .filter(([key, value]) => !["name", "email", "phone", "subject", "message", "whatsappConsent"].includes(key) && String(value).trim())
         .map(([key, value]) => `${key}: ${value}`)
         .join("\n")
       const response = await fetch("/api/inquiries", {
@@ -29,6 +30,7 @@ export function ContactForm({ children, enquiryType }: { children: ReactNode; en
           name: fields.get("name"),
           email: fields.get("email"),
           phone: fields.get("phone"),
+          whatsappConsent: fields.get("whatsappConsent") === "yes",
           message: `Subject: ${enquiryType || subject}\n\n${fields.get("message") || ""}\n${details}`,
         }),
       })
@@ -48,7 +50,7 @@ export function ContactForm({ children, enquiryType }: { children: ReactNode; en
 
   return (
     <form className="space-y-6" onSubmit={submit} aria-busy={pending}>
-      <fieldset disabled={pending} className="space-y-6 disabled:opacity-60">{children}</fieldset>
+      <fieldset disabled={pending} className="space-y-6 disabled:opacity-60"><WhatsAppOptIn />{children}</fieldset>
       {pending && <p role="status">Sending your enquiry…</p>}
       {result && <p role={result.ok ? "status" : "alert"} className={result.ok ? "text-sm" : "text-sm text-destructive"}>{result.message}</p>}
     </form>

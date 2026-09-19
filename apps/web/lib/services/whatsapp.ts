@@ -1,8 +1,8 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { WHATSAPP_CONSENT_VERSION } from '../whatsapp-consent';
+export { WHATSAPP_CONSENT_VERSION, WHATSAPP_CONSENT_TEXT } from '../whatsapp-consent';
 
 export const WHATSAPP_BUSINESS_NUMBER = '447728478115';
-export const WHATSAPP_CONSENT_VERSION = 'transactional-v1';
-export const WHATSAPP_CONSENT_TEXT = 'I would like Cricpro to send updates about this booking or enquiry to my number on WhatsApp. I can opt out at any time.';
 
 export type WhatsAppEvent = 'booking_confirmed' | 'enquiry_received' | 'admin_booking' | 'admin_enquiry';
 export interface WhatsAppConsent { phone: string; grantedAt: string; version: string }
@@ -25,6 +25,16 @@ export function recordWhatsAppConsent(phone: string, checked: unknown): WhatsApp
   const normalized = normalizeWhatsAppPhone(phone);
   if (!normalized) throw new Error('Enter a valid WhatsApp number including country code');
   return { phone: normalized, grantedAt: new Date().toISOString(), version: WHATSAPP_CONSENT_VERSION };
+}
+
+/** Never trust client-provided consent timestamps or versions. No new column is
+ * sent when unchecked, so the dormant release works before its migration. */
+export function whatsappConsentFields(phone: unknown, checked: unknown, enabled = process.env.WHATSAPP_ENABLED) {
+  if (checked === undefined || checked === false) return {};
+  if (checked !== true) throw new Error('Invalid WhatsApp consent');
+  if (enabled !== 'true') throw new Error('WhatsApp updates are not available yet. Please uncheck WhatsApp updates to continue.');
+  if (typeof phone !== 'string') throw new Error('Enter your WhatsApp number including country code');
+  return { whatsapp_consent: recordWhatsAppConsent(phone, true) };
 }
 
 export function verifyWhatsAppSignature(body: string, signature: string | null, secret: string): boolean {

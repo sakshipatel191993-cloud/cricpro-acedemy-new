@@ -282,16 +282,16 @@ export async function POST(request: NextRequest) {
 
     // Confirmed immediately (payments disabled or Stripe error)
     if (status === "confirmed") {
-      sendBookingConfirmation({
+      await Promise.allSettled([sendBookingConfirmation({
         ...data,
         customer_name: customerName,
         customer_email: customerEmail,
-      }).catch(console.error)
+      }),
       sendAdminBookingNotification({
         ...data,
         customer_name: customerName,
         customer_email: customerEmail,
-      }).catch(console.error)
+      })])
     }
 
     return NextResponse.json({

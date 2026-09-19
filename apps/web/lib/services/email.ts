@@ -1,5 +1,6 @@
 import { Resend } from "resend"
 import { LOCATION } from "@/lib/location"
+import { bookingAttachments, type VerifiedPayment } from "@/lib/services/booking-documents"
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY
 const FROM = process.env.EMAIL_FROM ?? "noreply@cricprocoe.com"
@@ -16,7 +17,8 @@ async function send(
   to: string,
   subject: string,
   html: string,
-  replyTo: string = ADMIN_EMAIL
+  replyTo: string = ADMIN_EMAIL,
+  attachments?: Awaited<ReturnType<typeof bookingAttachments>>
 ): Promise<boolean> {
   if (!resend) {
     console.warn(
@@ -39,6 +41,7 @@ async function send(
       subject,
       html,
       replyTo,
+      attachments,
     })
     if (error) {
       console.error("[EMAIL] Send failed:", JSON.stringify(error))
@@ -65,6 +68,7 @@ export interface BookingEmailData {
   customer_name: string
   customer_email: string
   player_count?: number | null
+  payment?: VerifiedPayment
 }
 
 function escapeHtml(value: string): string {
@@ -232,10 +236,16 @@ function groupSessionConfirmationHtml(
 // ─── Exported functions ───────────────────────────────────────────────────────
 
 export async function sendBookingConfirmation(booking: BookingEmailData) {
+  const attachments = await bookingAttachments({
+    reference: booking.booking_reference, customer: booking.customer_name, email: booking.customer_email,
+    service: titleCase(booking.service_type), payment: booking.payment,
+    details: [["Date", booking.booking_date], ["Time", `${formatTime(booking.start_at)}${booking.end_at ? ` - ${formatTime(booking.end_at)}` : ""}`],
+      ...(booking.resource_name ? [["Facility", booking.resource_name] as [string, string]] : [])],
+  })
   await send(
     booking.customer_email,
     `Booking Confirmed – ${booking.booking_reference} | Cricpro Centre of Excellence`,
-    bookingConfirmationHtml(booking)
+    bookingConfirmationHtml(booking), ADMIN_EMAIL, attachments
   )
 }
 
@@ -296,12 +306,17 @@ export async function sendAdminInquiryNotification(inquiry: {
 }
 
 export async function sendGroupSessionConfirmation(
-  booking: { player_name: string; parent_name: string; parent_email: string },
-  session: { title: string; price: string; session_kind?: string }
+  booking: { id?: string; player_name: string; parent_name: string; parent_email: string },
+  session: { title: string; price: string; session_kind?: string; schedule?: string },
+  payment?: VerifiedPayment
 ) {
+  const attachments = await bookingAttachments({ reference: booking.id || "session-booking", customer: booking.parent_name,
+    email: booking.parent_email, service: session.title, payment,
+    details: [["Player", booking.player_name], ...(session.schedule ? [["Schedule", session.schedule] as [string, string]] : [])],
+  })
   await send(
     booking.parent_email,
     `${session.session_kind === 'masterclass' ? 'Masterclass' : 'Group Session'} Booking Confirmed | Cricpro Centre of Excellence`,
-    groupSessionConfirmationHtml(booking, session)
+    groupSessionConfirmationHtml(booking, session), ADMIN_EMAIL, attachments
   )
 }

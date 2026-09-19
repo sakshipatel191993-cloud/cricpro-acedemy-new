@@ -9,11 +9,15 @@ test('transactional templates are branded, escaped, and have correct reply routi
   const messages = []
   class Resend { emails = { send: async (payload) => { messages.push(payload); return { data: { id: 'mock' } } } } }
   const exports = {}
+  const documentExports = {}
+  const location = { LOCATION: { name: 'Cricpro Centre of Excellence', address: 'Marsh Hill, B23 7EY', googleMapsUrl: 'https://maps.google.com', appleMapsUrl: 'https://maps.apple.com' } }
+  const documentCode = ts.transpileModule(fs.readFileSync(path.join(__dirname, 'booking-documents.ts'), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText
+  new Function('exports', 'require', 'Buffer', documentCode)(documentExports, name => name === '@/lib/location' ? location : require(name), Buffer)
   const source = fs.readFileSync(path.join(__dirname, 'email.ts'), 'utf8')
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
     exports, console: { log() {}, warn() {}, error() {} },
     process: { env: { RESEND_API_KEY: 'test', EMAIL_FROM: 'noreply@cricprocoe.com', ADMIN_EMAIL: 'info@cricprocoe.com' } },
-    require: (name) => name === 'resend' ? { Resend } : { LOCATION: { name: 'Cricpro', address: 'Marsh Hill', googleMapsUrl: 'https://maps.google.com', appleMapsUrl: 'https://maps.apple.com' } },
+    require: (name) => name === 'resend' ? { Resend } : name.includes('booking-documents') ? documentExports : location,
   })
   const inquiry = { name: '<script>Test</script>', email: 'customer@example.com', type: 'birthday_party', message: 'First line\nSecond <img src=x onerror=alert(1)>', phone: '' }
   await exports.sendInquiryConfirmation(inquiry)
@@ -40,4 +44,20 @@ test('transactional templates are branded, escaped, and have correct reply routi
   assert.match(messages[3].html, /Junior &lt;Coaching&gt;/)
   assert.match(messages[4].html, /Masterclass Booking Confirmed!/)
   assert.match(messages[5].html, /Booking Confirmed!/)
+  assert.equal(messages[5].attachments.length, 1, 'Unpaid bookings must not receive a payment receipt')
+  assert.throws(() => documentExports.verifiedPayment({ payment_status: 'unpaid' }), /verified paid/)
+  const payment = documentExports.verifiedPayment({ payment_status: 'paid', currency: 'gbp', amount_total: 2200, payment_intent: 'pi_test_preview', livemode: false })
+  await exports.sendBookingConfirmation({ ...booking, customer_name: 'Example Customer', payment })
+  assert.equal(messages[6].attachments.length, 2)
+  const { PDFDocument } = require('pdf-lib')
+  for (const attachment of messages[6].attachments) {
+    assert.equal(attachment.contentType, 'application/pdf')
+    assert.ok((await PDFDocument.load(attachment.content)).getPageCount() >= 1)
+    if (process.env.PDF_PREVIEW_DIR) {
+      fs.mkdirSync(process.env.PDF_PREVIEW_DIR, { recursive: true })
+      fs.writeFileSync(path.join(process.env.PDF_PREVIEW_DIR, attachment.filename), attachment.content)
+    }
+  }
+  await exports.sendGroupSessionConfirmation({ id: 'GROUP-TEST', player_name: 'Player', parent_name: 'Parent', parent_email: inquiry.email }, { title: 'Junior session', price: '22', schedule: 'Saturday, 10:00 - 11:00' }, payment)
+  assert.equal(messages[7].attachments.length, 2)
 })

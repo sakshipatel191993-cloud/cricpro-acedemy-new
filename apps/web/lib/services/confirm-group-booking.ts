@@ -1,6 +1,7 @@
 import type Stripe from 'stripe';
 import { supabaseAdmin } from '@/lib/services/supabase';
 import { sendGroupSessionConfirmation } from '@/lib/services/email';
+import { verifiedPayment } from '@/lib/services/booking-documents';
 
 // Accept only sessions retrieved from Stripe or received through its signed webhook.
 export async function confirmGroupBooking(session: Stripe.Checkout.Session) {
@@ -26,7 +27,8 @@ export async function confirmGroupBooking(session: Stripe.Checkout.Session) {
     await sendGroupSessionConfirmation(booking, {
       title: booking.session.title, price: Number(booking.amount).toFixed(2),
       session_kind: booking.session.session_kind,
-    }).catch(error => console.error('Session confirmation email failed:', error));
+      schedule: booking.session.schedule,
+    }, verifiedPayment(session)).catch(error => console.error('Session confirmation email failed:', error));
   }
   return { ...booking, status: 'confirmed', payment_status: 'paid' };
 }

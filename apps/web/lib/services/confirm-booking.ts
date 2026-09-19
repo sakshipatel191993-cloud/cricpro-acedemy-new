@@ -4,6 +4,8 @@ import {
   sendAdminBookingNotification,
 } from '@/lib/services/email';
 import type { DbBooking } from '@/lib/db/schema';
+import { getStripe } from '@/lib/services/stripe';
+import { verifiedPayment } from '@/lib/services/booking-documents';
 
 /**
  * Idempotently confirm a pending booking and send its confirmation emails.
@@ -18,6 +20,14 @@ export async function confirmBooking(
   bookingId: string,
   stripeSessionId: string
 ): Promise<DbBooking | null> {
+  const session = await getStripe().checkout.sessions.retrieve(stripeSessionId);
+  const payment = verifiedPayment(session);
+  const { data: pending, error: lookupError } = await supabaseAdmin.from('bookings').select('*').eq('id', bookingId).single();
+  if (lookupError || !pending || pending.stripe_session_id !== session.id ||
+      (session.metadata?.booking_id && session.metadata.booking_id !== bookingId) ||
+      payment.amount !== Math.round(Number(pending.amount) * 100)) {
+    throw new Error('Payment does not match this booking');
+  }
   const { data, error } = await supabaseAdmin
     .from('bookings')
     .update({
@@ -46,6 +56,7 @@ export async function confirmBooking(
       sendBookingConfirmation({
         ...booking,
         resource_name: resource?.name ?? undefined,
+        payment,
       }),
       sendAdminBookingNotification(booking),
     ]);

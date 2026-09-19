@@ -15,7 +15,8 @@ const USING_TEST_FROM = FROM === "onboarding@resend.dev"
 async function send(
   to: string,
   subject: string,
-  html: string
+  html: string,
+  replyTo?: string
 ): Promise<boolean> {
   if (!resend) {
     console.warn(
@@ -37,6 +38,7 @@ async function send(
       to,
       subject,
       html,
+      replyTo,
     })
     if (error) {
       console.error("[EMAIL] Send failed:", JSON.stringify(error))
@@ -202,8 +204,8 @@ function inquiryConfirmationHtml(name: string, type: string) {
   return `
     <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1d2544">
       <h2 style="color:#16a34a">Thanks for your enquiry!</h2>
-      <p>Hi ${name}, we've received your ${subject} enquiry and will be in touch within 24 hours.</p>
-      <p style="color:#666;font-size:14px">In the meantime, feel free to browse our <a href="https://nextgencricket.co.uk" style="color:#16a34a">website</a> for more information.</p>
+      <p>Hi ${escapeHtml(name)}, we've received your ${subject} enquiry and will be in touch within 24 hours.</p>
+      <p style="color:#666;font-size:14px">In the meantime, feel free to browse our <a href="https://cricprocoe.com" style="color:#16a34a">website</a> for more information.</p>
       <p style="color:#666;font-size:12px;margin-top:24px">Cricpro Centre of Excellence</p>
     </div>`
 }
@@ -260,10 +262,11 @@ export async function sendInquiryConfirmation(inquiry: {
   email: string
   type: string
 }) {
-  await send(
+  return send(
     inquiry.email,
     `Enquiry Received | Cricpro Centre of Excellence`,
-    inquiryConfirmationHtml(inquiry.name, inquiry.type)
+    inquiryConfirmationHtml(inquiry.name, inquiry.type),
+    ADMIN_EMAIL
   )
 }
 
@@ -272,11 +275,13 @@ export async function sendAdminInquiryNotification(inquiry: {
   email: string
   type: string
   message: string
+  phone?: string | null
 }) {
-  await send(
+  return send(
     ADMIN_EMAIL,
     `New Enquiry from ${inquiry.name}`,
-    `<p>New enquiry received:</p><pre>${JSON.stringify(inquiry, null, 2)}</pre>`
+    `<p>New enquiry received. Reply to this email to contact the customer.</p><pre style="white-space:pre-wrap">${escapeHtml(JSON.stringify(inquiry, null, 2))}</pre>`,
+    inquiry.email
   )
 }
 

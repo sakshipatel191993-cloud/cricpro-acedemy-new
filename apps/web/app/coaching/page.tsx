@@ -1,4 +1,5 @@
 import { Button } from "@workspace/ui/components/button"
+import { ContactForm } from "@/components/contact-form"
 import {
   Card,
   CardContent,
@@ -124,16 +125,19 @@ export default function CoachingPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form className="space-y-6">
+                <ContactForm enquiryType="coaching">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="name">Your Name</Label>
-                      <Input id="name" placeholder="Full name" />
+                      <Input id="name" name="name" required maxLength={200} placeholder="Full name" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="age">Age (if under 18)</Label>
                       <Input
                         id="age"
+                        name="Age"
+                        min={1}
+                        max={100}
                         type="number"
                         placeholder="Player's age"
                       />
@@ -142,7 +146,7 @@ export default function CoachingPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="level">Current Skill Level</Label>
-                    <Select>
+                    <Select name="Skill level">
                       <SelectTrigger id="level">
                         <SelectValue placeholder="Select level" />
                       </SelectTrigger>
@@ -164,7 +168,7 @@ export default function CoachingPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="focus">Primary Focus Area</Label>
-                    <Select>
+                    <Select name="Focus area">
                       <SelectTrigger id="focus">
                         <SelectValue placeholder="What do you want to improve?" />
                       </SelectTrigger>
@@ -184,6 +188,9 @@ export default function CoachingPage() {
                     <Label htmlFor="goals">Goals & Expectations</Label>
                     <Textarea
                       id="goals"
+                      name="message"
+                      required
+                      maxLength={8000}
                       placeholder="What do you want to achieve from coaching?"
                     />
                   </div>
@@ -193,6 +200,9 @@ export default function CoachingPage() {
                       <Label htmlFor="email">Email</Label>
                       <Input
                         id="email"
+                        name="email"
+                        required
+                        maxLength={254}
                         type="email"
                         placeholder="your@email.com"
                       />
@@ -201,6 +211,8 @@ export default function CoachingPage() {
                       <Label htmlFor="phone">Phone</Label>
                       <Input
                         id="phone"
+                        name="phone"
+                        maxLength={40}
                         type="tel"
                         placeholder="07xxx xxx xxx"
                       />
@@ -210,11 +222,11 @@ export default function CoachingPage() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="club">Current Club (Optional)</Label>
-                      <Input id="club" placeholder="Your club" />
+                      <Input id="club" name="Club" maxLength={200} placeholder="Your club" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="availability">Preferred Times</Label>
-                      <Select>
+                      <Select name="Preferred times">
                         <SelectTrigger id="availability">
                           <SelectValue placeholder="When can you train?" />
                         </SelectTrigger>
@@ -240,7 +252,7 @@ export default function CoachingPage() {
                   <Button type="submit" size="lg" className="w-full">
                     Submit Enquiry
                   </Button>
-                </form>
+                </ContactForm>
               </CardContent>
             </Card>
           </div>

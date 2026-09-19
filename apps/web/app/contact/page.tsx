@@ -29,6 +29,7 @@ import {
 import { Metadata } from "next"
 import { LOCATION } from "@/lib/location"
 import { OPERATING_HOURS } from "@/lib/hours"
+import { ContactForm } from "@/components/contact-form"
 
 export const metadata: Metadata = {
   title: "Contact Us | Cricpro Centre of Excellence",
@@ -107,7 +108,7 @@ export default function ContactPage() {
                     <div>
                       <h3 className="mb-1 font-semibold">Email</h3>
                       <p className="text-muted-foreground">
-                        info@cricprocoe.com
+                        <a href="mailto:info@cricprocoe.com">info@cricprocoe.com</a>
                       </p>
                     </div>
                   </div>
@@ -160,10 +161,10 @@ export default function ContactPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form className="space-y-6">
+                <ContactForm>
                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" placeholder="Your full name" />
+                    <Input id="name" name="name" required maxLength={200} autoComplete="name" placeholder="Your full name" />
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -171,6 +172,10 @@ export default function ContactPage() {
                       <Label htmlFor="email">Email</Label>
                       <Input
                         id="email"
+                        name="email"
+                        required
+                        maxLength={254}
+                        autoComplete="email"
                         type="email"
                         placeholder="your@email.com"
                       />
@@ -179,6 +184,9 @@ export default function ContactPage() {
                       <Label htmlFor="phone">Phone (Optional)</Label>
                       <Input
                         id="phone"
+                        name="phone"
+                        maxLength={40}
+                        autoComplete="tel"
                         type="tel"
                         placeholder="07xxx xxx xxx"
                       />
@@ -187,7 +195,7 @@ export default function ContactPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="subject">Subject</Label>
-                    <Select>
+                    <Select name="subject" defaultValue="general">
                       <SelectTrigger id="subject">
                         <SelectValue placeholder="Select a subject" />
                       </SelectTrigger>
@@ -213,6 +221,9 @@ export default function ContactPage() {
                     <Label htmlFor="message">Message</Label>
                     <Textarea
                       id="message"
+                      name="message"
+                      required
+                      maxLength={10000}
                       placeholder="How can we help you?"
                       className="min-h-[150px]"
                     />
@@ -221,7 +232,7 @@ export default function ContactPage() {
                   <Button type="submit" size="lg" className="w-full">
                     Send Message
                   </Button>
-                </form>
+                </ContactForm>
               </CardContent>
             </Card>
           </div>

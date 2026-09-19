@@ -34,7 +34,13 @@ PDF delivery are unchanged. Free/unpaid bookings do not trigger WhatsApp alerts.
    state immediately before a send. Never include medical or full payment details.
 5. Configure a trusted scheduler to POST `/api/whatsapp/process` with
    `Authorization: Bearer <WHATSAPP_WORKER_SECRET>` (at least 32 random characters).
-   No scheduler is enabled yet. Each invocation claims at most three jobs using a
+   Committed bookings/enquiries now also schedule an immediate, source-filtered
+   worker invocation through Next.js `after()`. A daily Vercel recovery invocation
+   is defined at 06:00 UTC (Hobby compatible); set a separate server-only
+   `CRON_SECRET` of at least 32 random characters for its authenticated GET.
+   Daily recovery is NOT sufficient for reliable timely retries: use an external
+   scheduler or a more frequent Pro cron before activating live notifications.
+   Each invocation claims at most three jobs using a
    compare-and-swap update. Tune cadence/capacity before launch. Explicit 429s retry
    with bounded backoff; interrupted, 5xx and uncertain sends are quarantined for
    operator review. Do NOT blindly retry them. Jobs older than 24h are skipped.
@@ -58,7 +64,23 @@ only. The sender cannot send WhatsApp messages to itself.
 
 Before launch, define retention/cleanup for consent, jobs and delivery events, add
 operator monitoring for failed/ambiguous jobs, and review public-form abuse controls.
-No scheduler, paid provider subscription or live WhatsApp messages were created.
+No paid provider subscription or live WhatsApp messages were created. The cron
+configuration takes effect only after a production deployment.
+
+## PR readiness / do not enable yet
+
+This branch is not yet an API-keys-only production launch. Outstanding engineering
+work: admin event queue/worker wiring, operational monitoring and recovery tests,
+and a security review of the existing public booking/enquiry administration APIs.
+Keep both WhatsApp flags false until these are complete. The development demo
+does not prove real Meta delivery. Run mocked notification tests and TypeScript
+checks using the commands below; Vercel's preview build must also pass before merge.
+CI automation is still pending (the GitHub login does not have workflow-write scope).
+
+```sh
+node --test apps/web/lib/services/email.test.cjs apps/web/lib/services/whatsapp.test.cjs
+npx tsc --noEmit -p apps/web/tsconfig.json
+```
 
 Security advisor: the new tables have RLS and no anon/authenticated grants or policies
 (intentionally server-only). Existing project warnings remain for `btree_gist` in

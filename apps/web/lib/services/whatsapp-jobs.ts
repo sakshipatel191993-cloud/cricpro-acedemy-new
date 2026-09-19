@@ -20,14 +20,17 @@ export function whatsappJobPayload(table: string, row: Source, phone: string) {
 
 /** Bounded worker. Compare-and-swap claims prevent overlapping workers sending
  * the same job. An interrupted claim is ambiguous, NOT returned to the queue. */
-export async function processWhatsAppJobs(db = supabaseAdmin, send = sendWhatsAppTemplate) {
+export async function processWhatsAppJobs(db = supabaseAdmin, send = sendWhatsAppTemplate,
+  source?: { table: string; id: string }) {
   if (process.env.WHATSAPP_ENABLED !== 'true') return { disabled: true, processed: 0 };
   const now = new Date();
   const { error: staleError } = await db.from('whatsapp_jobs').update({ status: 'ambiguous', error: 'worker_interrupted' })
     .eq('status', 'processing').lt('claimed_at', new Date(now.getTime() - 120_000).toISOString());
   if (staleError) throw new Error('Unable to reconcile WhatsApp jobs');
-  const { data: jobs, error } = await db.from('whatsapp_jobs').select('*').eq('status', 'pending')
-    .lte('next_attempt_at', now.toISOString()).order('next_attempt_at').limit(3);
+  let query = db.from('whatsapp_jobs').select('*').eq('status', 'pending')
+    .lte('next_attempt_at', now.toISOString());
+  if (source) query = query.eq('source_table', source.table).eq('source_id', source.id);
+  const { data: jobs, error } = await query.order('next_attempt_at').limit(3);
   if (error) throw new Error('Unable to load WhatsApp jobs');
   let processed = 0;
   for (const job of jobs || []) {

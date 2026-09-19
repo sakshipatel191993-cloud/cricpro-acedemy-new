@@ -6,6 +6,7 @@ import {
 import type { DbBooking } from '@/lib/db/schema';
 import { getStripe } from '@/lib/services/stripe';
 import { verifiedPayment } from '@/lib/services/booking-documents';
+import { dispatchWhatsApp } from '@/lib/services/whatsapp-dispatch';
 
 /**
  * Idempotently confirm a pending booking and send its confirmation emails.
@@ -40,6 +41,8 @@ export async function confirmBooking(
     .select();
 
   if (error) throw error;
+
+  dispatchWhatsApp('bookings', bookingId);
 
   const booking = data && data.length > 0 ? (data[0] as DbBooking) : null;
 

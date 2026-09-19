@@ -6,6 +6,8 @@ import { supabaseAdmin } from '@/lib/services/supabase';
 import { verifyWebhookSignature } from '@/lib/services/stripe';
 import { confirmBooking } from '@/lib/services/confirm-booking';
 
+export const maxDuration = 60;
+
 
 
 export async function POST(request: NextRequest) {

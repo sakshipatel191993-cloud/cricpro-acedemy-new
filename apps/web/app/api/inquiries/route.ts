@@ -3,6 +3,9 @@ import { supabaseAdmin } from '@/lib/services/supabase';
 import { sendInquiryConfirmation, sendAdminInquiryNotification } from '@/lib/services/email';
 import type { DbInquiry } from '@/lib/db/schema';
 import { whatsappConsentFields } from '@/lib/services/whatsapp';
+import { dispatchWhatsApp } from '@/lib/services/whatsapp-dispatch';
+
+export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
   try {
@@ -55,6 +58,7 @@ export async function POST(request: NextRequest) {
 
     const { data, error } = await supabaseAdmin.from('inquiries').insert(inquiry).select().single();
     if (error) throw error;
+    dispatchWhatsApp('inquiries', data.id);
 
     // Await both sends: detached promises may be terminated after a serverless response.
     const [admin, confirmation] = await Promise.all([

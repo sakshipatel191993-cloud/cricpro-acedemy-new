@@ -185,6 +185,45 @@ test('worker suppresses STOP, cancelled and stale bookings without sending', asy
   } finally { if (previous === undefined) delete process.env.WHATSAPP_ENABLED; else process.env.WHATSAPP_ENABLED = previous }
 })
 
+test('immediate dispatch is disabled by default and isolates the committed source', async () => {
+  const previous = process.env.WHATSAPP_ENABLED
+  const callbacks = [], calls = []
+  const dispatch = load('whatsapp-dispatch.ts', {
+    'next/server': { after: callback => callbacks.push(callback) },
+    './whatsapp-jobs': { processWhatsAppJobs: async (...args) => calls.push(args) },
+  }).dispatchWhatsApp
+  try {
+    delete process.env.WHATSAPP_ENABLED
+    dispatch('bookings', 'booking-1')
+    assert.equal(callbacks.length, 0)
+    process.env.WHATSAPP_ENABLED = 'true'
+    dispatch('bookings', 'booking-1')
+    assert.equal(calls.length, 0)
+    await callbacks[0]()
+    assert.deepEqual(calls[0], [undefined, undefined, { table: 'bookings', id: 'booking-1' }])
+    const db = database()
+    await jobsApi.processWhatsAppJobs(db, () => assert.fail('Wrong source must not send'), { table: 'inquiries', id: 'booking-1' })
+    assert.equal(db.tables.whatsapp_jobs[0].status, 'pending')
+    await jobsApi.processWhatsAppJobs(db, () => assert.fail('Wrong ID must not send'), { table: 'bookings', id: 'other' })
+    assert.equal(db.tables.whatsapp_jobs[0].status, 'pending')
+  } finally { if (previous === undefined) delete process.env.WHATSAPP_ENABLED; else process.env.WHATSAPP_ENABLED = previous }
+})
+
+test('cron GET fails closed without its separate secret', async () => {
+  let calls = 0
+  const route = load('../../app/api/whatsapp/process/route.ts', { '@/lib/services/whatsapp-jobs': { processWhatsAppJobs: async () => { calls++; return { processed: 0 } } } })
+  const previous = process.env.CRON_SECRET
+  try {
+    delete process.env.CRON_SECRET
+    assert.equal((await route.GET(new Request('http://localhost/process'))).status, 401)
+    process.env.CRON_SECRET = 'c'.repeat(32)
+    assert.equal((await route.GET(new Request('http://localhost/process', { headers: { authorization: 'Bearer wrong' } }))).status, 401)
+    assert.equal(calls, 0)
+    assert.equal((await route.GET(new Request('http://localhost/process', { headers: { authorization: `Bearer ${'c'.repeat(32)}` } }))).status, 200)
+    assert.equal(calls, 1)
+  } finally { if (previous === undefined) delete process.env.CRON_SECRET; else process.env.CRON_SECRET = previous }
+})
+
 test('worker retries explicit throttling but quarantines uncertain sends and interrupted claims', async () => {
   const previous = process.env.WHATSAPP_ENABLED
   process.env.WHATSAPP_ENABLED = 'true'

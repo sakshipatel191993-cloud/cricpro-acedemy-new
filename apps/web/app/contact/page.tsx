@@ -98,7 +98,7 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <h3 className="mb-1 font-semibold">Phone</h3>
-                      <p className="text-muted-foreground">[Coming Soon]</p>
+                      <a href="tel:+447728478115" className="text-muted-foreground hover:text-primary">+44 7728 478115</a>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
@@ -140,7 +140,10 @@ export default function ContactPage() {
                     For the fastest response, use the contact form or message us
                     on social media.
                   </p>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" asChild>
+                      <a href="https://wa.me/447728478115" target="_blank" rel="noopener noreferrer">Chat on WhatsApp</a>
+                    </Button>
                     <Button size="sm" variant="outline" disabled>
                       Facebook (Soon)
                     </Button>

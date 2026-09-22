@@ -13,6 +13,7 @@ const navItems = [
   { href: '/admin/group-sessions', label: 'Group Sessions', icon: Users },
   { href: '/admin/masterclass', label: 'Masterclass', icon: Users },
   { href: '/admin/inquiries', label: 'Inquiries', icon: MessageSquare },
+  { href: '/admin/coupons', label: 'Coupons', icon: Layers },
 ];
 
 export function AdminNav() {

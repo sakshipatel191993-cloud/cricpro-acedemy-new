@@ -3,7 +3,45 @@
 **Project:** Next Gen Cricket Academy Website
 **Tagline:** "Practice to Perfection"
 **Core Narrative:** "A place where casual players become serious cricketers"
-**Last Updated:** 2026-05-18
+**Last Updated:** 2026-09-22
+
+## Current product baseline and planned checkout work
+
+The September requirements below supersede conflicting historical phase notes. Historical checkboxes are not a security or release certification.
+
+- Brand: CricPro Centre of Excellence.
+- Opening hours: Monday–Friday 3 PM–11 PM; weekday off-peak 3 PM–5 PM, peak 5 PM–11 PM. Saturday–Sunday 9 AM–11 PM, all peak.
+- Group sessions and masterclasses use their admin-configured age group, enforced in both the form and booking API. An 11–15 range includes only ages 11 through 15; a configured 13+ range still permits adults.
+- Coaching is live, enquiry-based, and displays admin-managed coaches without requiring a coach selection.
+- Paid group sessions/masterclasses require Stripe payment before confirmation. Emails include directions and applicable booking/payment PDFs.
+
+### Planned: promotional discounts and optional checkout sign-in
+
+**Status: specified, not implemented or activated.**
+
+| Requirement | Acceptance criterion |
+|---|---|
+| COACH15 | 15% discount on approved eligible purchases |
+| COACH20 | 20% discount on approved eligible purchases |
+| Optional sign-in | Offer Sign in / Create account and an equally clear Continue as guest path; never require an account to pay or redeem an otherwise eligible code |
+| Preserve progress | Same-tab sign-in returns to the same booking draft; revalidate availability, age and price before payment |
+| Safe payment fulfilment | Verify server-priced subtotal, permitted Stripe discount, GBP total and booking/session binding before confirming; never trust browser totals |
+| Transparent receipts | Display original subtotal, promotion, discount and amount actually paid in confirmation, admin records and PDF receipt |
+| Guest parity | Guests retain confirmation emails/PDFs and secure booking access; do not expose bookings by supplying an email address |
+| Account benefit | Promise booking history only after authenticated ownership linkage and private history retrieval work for both booking types |
+
+Approved initial policy: all paid booking types, including lane hire, sidearm, bowling machine, group sessions and masterclasses, with paid add-ons included in the discounted booking subtotal; 30 days from launch ending at midnight UK time; 50 successful uses per code; one successful use per customer across both codes and all booking types; no stacking or minimum spend; guest eligibility; no retrospective discounts. Refunds follow the cancellation policy and cannot exceed the amount paid. Email-based guest limits cannot guarantee one use per human. Coaching and birthday parties are eligible when a paid booking flow exists; enquiries alone have no payment to discount. Before activation, publish exact launch timestamps and confirm refund eligibility restoration (proposed default: no automatic restoration). Policy approval does not mean implementation or live activation.
+
+Feature specifications:
+
+Implementation update (2026-09-22): [Admin-managed coupons](docs/features/admin-coupons.md) adds create/edit/disable/archive, usage tracking and application-owned checkout discounts. Implemented locally, not deployed or activated. This supersedes earlier proposals to exclude admin management or require manual Stripe promotion objects; release/provider verification and campaign activation remain pending.
+
+- [Coupons and Stripe checkout](docs/features/checkout-coupons.md)
+- [Optional checkout sign-in](docs/features/optional-checkout-sign-in.md)
+- [Implementation and release plan](docs/features/checkout-implementation-plan.md)
+- [Phase-two security and pricing plan](docs/security/phase-two-implementation-plan.md): shared abuse limits, email-verified scoped guest access and a single server-owned quote used for display/payment. Guest checkout remains optional-account; provider/limits, access lifetimes and first-release single-booking checkout are proposals pending approval.
+
+Security gate: resolve the critical/high access-control, credential, dependency, redirect and payment-integrity findings applicable to checkout before enabling these features. The 2026-09-22 read-only review is recorded separately in `docs/security/security-review-2026-09-22.md`; keep detailed findings private until remediation.
 
 ---
 
@@ -157,15 +195,17 @@ Step 6: Confirmation → /booking-success?ref=... (email sent via Resend)
 
 GROUP SESSIONS:
 Step 1: Session Selection → Schedule, age group, spots
-Step 2: Player Info → Name, DOB, skill level
+Step 2: Player Info → Name, age within the configured range, skill level
 Step 3: Emergency Contact → Name, relationship, phone
-Step 4: Confirmation → Summary, what to bring
+Step 4: Payment → Stripe Checkout
+Step 5: Verified Confirmation → Summary, directions, applicable PDFs, what to bring
 ```
 
 ### Auth Flow
-- `/login` — Supabase `signInWithPassword`; redirects to `from` param or `/`
+- `/login` — Supabase `signInWithPassword`; planned hardening must validate `from` as an allowlisted same-origin destination before redirecting
 - `/signup` — Supabase `signUp` with `full_name` + `phone` in user metadata
 - Optional auth: booking flows auto-fill from logged-in user but never block non-logged-in users
+- Planned checkout prompt must preserve the booking draft; cancelled/failed sign-in must still allow guest checkout
 - Header shows Login/Sign Up when logged out; avatar dropdown with Sign Out when logged in
 
 ### Mobile Booking UX Checklist

@@ -22,7 +22,7 @@ function load(file, deps) {
  }; } };
  const file='apps/web/lib/services/confirm-group-booking.ts';
  assert.ok(fs.existsSync(path.join(root,file)), 'Payment confirmation must verify Stripe before confirming a group booking');
- const {confirmGroupBooking}=load(file,{'@/lib/services/supabase':{supabaseAdmin:db},'@/lib/services/email':{sendGroupSessionConfirmation:async()=>{emails++}}});
+ const {confirmGroupBooking}=load(file,{'@/lib/services/supabase':{supabaseAdmin:db},'@/lib/services/email':{sendGroupSessionConfirmation:async()=>{emails++}},'@/lib/services/booking-documents':{verifiedPayment:session=>({amount:session.amount_total,currency:session.currency})}});
  await assert.rejects(()=>confirmGroupBooking(stripe)); assert.equal(writes,0);assert.equal(emails,0);
  stripe.payment_status='paid';stripe.amount_total=1;
  await assert.rejects(()=>confirmGroupBooking(stripe));assert.equal(writes,0);

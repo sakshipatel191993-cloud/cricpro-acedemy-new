@@ -29,15 +29,13 @@ export function RateSchedule({ offPeakPrice, peakPrice }: RateScheduleProps) {
         </p>
         <div className="mt-2 space-y-2">
           <div className="flex h-2.5 overflow-hidden rounded-full" aria-hidden="true">
-            <div className="flex-[3] bg-muted-foreground/55" />
-            <div className="flex-[4] bg-muted-foreground/25" />
+            <div className="flex-[2] bg-muted-foreground/25" />
             <div className="flex-[6] bg-muted-foreground/55" />
           </div>
-          <div className="flex justify-between text-[11px] font-medium text-muted-foreground">
-            <span>9 AM</span>
-            <span>12 PM</span>
-            <span>4 PM</span>
-            <span>10 PM</span>
+          <div className="relative flex justify-between text-[11px] font-medium text-muted-foreground">
+            <span>3 PM</span>
+            <span className="absolute left-1/4 -translate-x-1/2">5 PM</span>
+            <span>11 PM</span>
           </div>
         </div>
       </div>
@@ -66,7 +64,7 @@ export function RateSchedule({ offPeakPrice, peakPrice }: RateScheduleProps) {
             <span className="h-3 w-3 shrink-0 rounded-full bg-muted-foreground/30" />
             <div>
               <p className="text-sm font-medium">Off-Peak</p>
-              <p className="text-xs text-muted-foreground">Mon–Fri 12–4 PM only</p>
+              <p className="text-xs text-muted-foreground">Mon–Fri 3–5 PM only</p>
             </div>
           </div>
           <p className="text-lg font-semibold tabular-nums">
@@ -81,7 +79,7 @@ export function RateSchedule({ offPeakPrice, peakPrice }: RateScheduleProps) {
             <div>
               <p className="text-sm font-medium">Peak</p>
               <p className="text-xs text-muted-foreground">
-                Mon–Fri 9 AM–12 PM &amp; 4–10 PM · Sat–Sun all day
+                Mon–Fri 5–11 PM · Sat–Sun all day
               </p>
             </div>
           </div>

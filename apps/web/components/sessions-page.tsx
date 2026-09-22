@@ -14,10 +14,12 @@ import type { DbGroupSession } from "@/lib/db/schema";
 
 import { availableSessions } from '@/lib/session-options';
 import { WhatsAppOptIn } from '@/components/whatsapp-opt-in';
+import { isSessionAgeAllowed, sessionAgeOptions } from '@/lib/session-age';
 
 export default function SessionsPage({ masterclass = false }: { masterclass?: boolean }) {
   const [coach, setCoach] = useState('');
   const [sessionId, setSessionId] = useState('');
+  const [playerAge, setPlayerAge] = useState('');
   const [loadError, setLoadError] = useState(false);
   const [sessions, setSessions] = useState<DbGroupSession[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,6 +27,7 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
 
   const visibleSessions = availableSessions(sessions, masterclass ? 'masterclass' : 'group', coach);
   const selected = visibleSessions.find(session => session.id === sessionId);
+  const allowedAges = sessionAgeOptions(selected?.age_group);
   const coaches = [...new Set(sessions.map(session => session.coach_name).filter((name): name is string => !!name))];
   const price = selected ? Number(selected.price).toFixed(2) : null;
 
@@ -52,13 +55,17 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
       toast.error('Choose an available session');
       return;
     }
+    if (!isSessionAgeAllowed(playerAge, selected.age_group)) {
+      toast.error(`Choose a player age matching this session: ${selected.age_group}`);
+      return;
+    }
     setSubmitting(true);
 
     const formData = new FormData(e.currentTarget);
     const payload = {
       session_id: formData.get("session_id"),
       player_name: formData.get("player_name"),
-      player_age: formData.get("player_age"),
+      player_age: playerAge,
       skill_level: formData.get("skill_level"),
       parent_name: formData.get("parent_name"),
       parent_phone: formData.get("parent_phone"),
@@ -103,7 +110,7 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
               {masterclass ? 'Learn from the Experts' : 'Level Up Together'}
             </h1>
             <p className="text-lg text-muted-foreground">
-              {masterclass ? 'Choose your coach and join a focused cricket masterclass to develop your game.' : 'Structured coaching sessions for young cricketers aged 6-18. Build skills, make friends, and develop your game in a supportive environment.'}
+              {masterclass ? 'Choose your coach and join a focused cricket masterclass to develop your game.' : 'Choose a session for your age group. Build skills, make friends, and develop your game in a supportive environment.'}
             </p>
           </div>
         </div>
@@ -115,7 +122,7 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
           {masterclass && (
             <div className="max-w-5xl mx-auto mb-8 space-y-2">
               <Label htmlFor="coach_name">Coach Name</Label>
-              <select id="coach_name" value={coach} onChange={event => { setCoach(event.target.value); setSessionId(''); }} className="w-full sm:max-w-sm rounded-md border bg-background px-3 py-2" disabled={loading}>
+              <select id="coach_name" value={coach} onChange={event => { setCoach(event.target.value); setSessionId(''); setPlayerAge(''); }} className="w-full sm:max-w-sm rounded-md border bg-background px-3 py-2" disabled={loading}>
                 <option value="">All coaches</option>
                 {coaches.map(name => <option key={name} value={name}>{name}</option>)}
               </select>
@@ -144,7 +151,7 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="h-5 w-5 text-green-500" />
-                    <span>{masterclass ? (selected?.age_group || 'Age group shown for each class') : 'Ages 6-18 welcome'}</span>
+                    <span>{selected?.age_group || 'Age group shown for each session'}</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="h-5 w-5 text-green-500" />
@@ -251,7 +258,7 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="space-y-2">
                     <Label htmlFor="session_id">Select Session</Label>
-                    <Select name="session_id" required value={sessionId} onValueChange={(value) => setSessionId(value ?? "")}>
+                    <Select name="session_id" required value={sessionId} onValueChange={(value) => { setSessionId(value ?? ""); setPlayerAge(''); }}>
                       <SelectTrigger id="session_id">
                         <SelectValue placeholder="Choose a session" />
                       </SelectTrigger>
@@ -272,16 +279,17 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="player_age">Player&apos;s Age</Label>
-                      <Select name="player_age" required>
+                      <Select key={sessionId} name="player_age" required value={playerAge} onValueChange={(value) => setPlayerAge(value ?? '')} disabled={!allowedAges.length}>
                         <SelectTrigger id="player_age">
-                          <SelectValue placeholder="Select age" />
+                          <SelectValue placeholder={selected ? 'Select age' : 'Choose a session first'} />
                         </SelectTrigger>
                         <SelectContent>
-                          {Array.from({ length: 13 }, (_, i) => i + 6).map((age) => (
+                          {allowedAges.map((age) => (
                             <SelectItem key={age} value={age.toString()}>{age} years</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                      <p className="text-sm text-muted-foreground">{selected ? (allowedAges.length ? `Eligible ages: ${selected.age_group}` : 'Age group unavailable. Please contact us before booking.') : 'Select a session to see eligible ages.'}</p>
                     </div>
                   </div>
 
@@ -322,7 +330,7 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
 
                   <WhatsAppOptIn disabled={submitting} />
                   <p className="text-sm text-muted-foreground">Your place is confirmed after successful payment through Stripe.</p>
-                  <Button type="submit" size="lg" className="w-full" disabled={submitting || loading || (!selected || selected.current_players >= selected.max_players)}>
+                  <Button type="submit" size="lg" className="w-full" disabled={submitting || loading || !allowedAges.length || (!selected || selected.current_players >= selected.max_players)}>
                     {submitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSessionSchedule } from '@/lib/session-schedule';
+import { AGE_GROUP_HELP, sessionAgeRange } from '@/lib/session-age';
 import { supabaseAdmin } from '@/lib/services/supabase';
 
 export async function GET(request: NextRequest) {
@@ -54,6 +55,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!sessionAgeRange(age_group)) {
+      return NextResponse.json({ success: false, error: AGE_GROUP_HELP }, { status: 400 });
+    }
     if (session_kind === 'masterclass') {
       if (!coach_name || !Number.isFinite(Number(price)) || Number(price) < 0 || !Number.isInteger(Number(max_players)) || Number(max_players) < 1) {
         return NextResponse.json({ success: false, error: 'A coach, valid price and capacity are required' }, { status: 400 });
@@ -123,6 +127,9 @@ export async function PATCH(request: NextRequest) {
     }
 
     const updateData: Record<string, unknown> = { ...dateFields };
+    if (age_group !== undefined && !sessionAgeRange(age_group)) {
+      return NextResponse.json({ success: false, error: AGE_GROUP_HELP }, { status: 400 });
+    }
     if (title) updateData.title = title;
     if (age_group) updateData.age_group = age_group;
     if (max_players) updateData.max_players = max_players;

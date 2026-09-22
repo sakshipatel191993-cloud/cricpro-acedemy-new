@@ -43,24 +43,24 @@ test('coaching is live, displays database coaches and never requires coach selec
 test('weekday and weekend hours agree with the final published rate boundaries', () => {
   const hours = load('hours.ts').OPERATING_HOURS
   const data = load('data.ts')
-  assert.equal(hours.weekday.hours, '9:00 AM – 10:00 PM')
-  assert.equal(hours.weekday.offPeak, '12 PM – 4 PM')
-  assert.equal(hours.weekday.peak, '9 AM – 12 PM & 4 PM – 10 PM')
+  assert.equal(hours.weekday.hours, '3:00 PM – 11:00 PM')
+  assert.equal(hours.weekday.offPeak, '3 PM – 5 PM')
+  assert.equal(hours.weekday.peak, '5 PM – 11 PM')
   assert.equal(hours.weekend.hours, '9:00 AM – 11:00 PM')
   assert.equal(hours.weekend.offPeak, undefined)
   assert.equal(hours.weekend.peak, '9 AM – 11 PM')
   assert.equal(data.services.coaching.price, 'Coaching Now Available')
   for (const service of ['laneHire', 'bowlingMachine']) {
-    assert.equal(data.services[service].offPeakHours, 'Weekdays 12 PM – 4 PM only')
-    assert.equal(data.services[service].peakHours, 'Weekdays 9 AM – 12 PM & 4 PM – 10 PM · Weekends all day')
+    assert.equal(data.services[service].offPeakHours, 'Weekdays 3 PM – 5 PM only')
+    assert.equal(data.services[service].peakHours, 'Weekdays 5 PM – 11 PM · Weekends all day')
   }
 })
 
 test('checkout and slot fallback rate boundaries include weekend mornings and late evenings', () => {
   const { isPeakHour } = load('hours.ts')
   for (const day of [1, 2, 3, 4, 5]) {
-    for (const hour of [12, 15]) assert.equal(isPeakHour(day, hour), false)
-    for (const hour of [9, 10, 11, 16, 21]) assert.equal(isPeakHour(day, hour), true)
+    for (const hour of [15, 16]) assert.equal(isPeakHour(day, hour), false)
+    for (const hour of [17, 18, 21, 22]) assert.equal(isPeakHour(day, hour), true)
   }
   for (const day of [0, 6]) {
     for (const hour of [9, 10, 11, 12, 15, 16, 21, 22]) assert.equal(isPeakHour(day, hour), true)

@@ -109,7 +109,7 @@ export function HeroSection() {
             <span className="inline-block h-1 w-1 rounded-full bg-primary" />
             <span>Open 7 days</span>
             <span className="inline-block h-1 w-1 rounded-full bg-primary" />
-            <span>Weekdays 9 AM–10 PM · Weekends 9 AM–11 PM</span>
+            <span>Weekdays 3 PM–11 PM · Weekends 9 AM–11 PM</span>
             <span className="inline-block h-1 w-1 rounded-full bg-primary" />
             <span>4 Indoor Lanes</span>
           </motion.p>

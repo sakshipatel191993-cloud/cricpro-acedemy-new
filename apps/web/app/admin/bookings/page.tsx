@@ -13,6 +13,7 @@ interface Booking {
   status: string;
   payment_status: string;
   amount: string;
+  coupon_snapshot?: { code: string; discountMinor: number; subtotalMinor: number } | null;
   resource: { name: string; type: string };
   service_type: string;
   created_at: string;
@@ -158,7 +159,7 @@ export default function AdminBookingsPage() {
                           {new Date(booking.end_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-foreground">£{booking.amount}</td>
+                      <td className="px-4 py-3 text-sm text-foreground">£{booking.amount}{booking.coupon_snapshot?.code && <p className="text-xs text-muted-foreground">{booking.coupon_snapshot.code} · saved £{(booking.coupon_snapshot.discountMinor / 100).toFixed(2)} from £{(booking.coupon_snapshot.subtotalMinor / 100).toFixed(2)}</p>}</td>
                       <td className="px-4 py-3">
                         <select
                           value={booking.status}

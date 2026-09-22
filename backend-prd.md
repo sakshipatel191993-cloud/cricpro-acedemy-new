@@ -5,7 +5,30 @@
 **Project:** CricPro Academy Backend Platform
 **Frontend Stack:** Next.js App Router
 **Backend Stack:** Next.js API Routes + Supabase
-**Last Updated:** 2026-05-15
+**Last Updated:** 2026-09-22
+
+## September checkout requirements addendum
+
+Implementation update: [admin-managed coupons](docs/features/admin-coupons.md) is now implemented locally with private tables/RPCs, transactional redemption reservations, admin CRUD/archive and immutable net-price checkout snapshots. This supersedes the historical manual-Stripe-promotion proposal below. No production migration, deployment or live activation has occurred.
+
+Follow-on planning: [phase-two security and pricing plan](docs/security/phase-two-implementation-plan.md) defines distributed limiter failure behaviour, scoped guest grants/ownership, timezone-aware shared quoting, checkout-attempt recovery and acceptance tests. It is a design proposal, not a migration or implementation approval.
+
+Status: planned, not implemented. This addendum supersedes conflicting legacy payment/auth requirements below.
+
+- Implement COACH15 (15%) and COACH20 (20%) under the approved initial policy: all paid booking types (lane hire, sidearm, bowling machine, group sessions and masterclasses, plus coaching/parties when payable), including paid booking add-ons; 30 days from launch, 50 successful uses per code, one per customer across both codes and all booking types, no stacking/minimum spend and guest eligibility. Enquiry-only services have no payment to discount; do not create new payment flows merely to apply this policy.
+- Enforce shared campaign/customer redemption limits and per-code caps atomically, with pending-attempt reservations, verified settlement and safe release. Email-based guest limits are not identity proof. Use server-validated code input and an explicitly attached Stripe promotion. Set exact launch/expiry timestamps and confirm refund eligibility restoration before activation.
+- Keep guest checkout. Derive signed-in ownership from a server-verified Supabase identity, never a browser-supplied user ID or email filter.
+- Preserve immutable gross quote values and record discount and net-paid minor-unit amounts separately for both `bookings` and `group_session_bookings`.
+- Fulfil only after verifying Stripe payment status, currency, original quote/subtotal, permitted discount, final total, mode and exact booking/Checkout Session linkage. Share this verifier between webhook and success-page fallback.
+- Use idempotent checkout attempts and atomic paid transitions. Retried/expired checkouts and duplicate webhooks must not double-charge, confirm twice, increment redemption twice or release a paid place.
+- Implement scoped owner access and expiring guest capabilities for private booking operations; forbid public booking/enquiry lists and ID-only cancellation.
+- A cancellation must not be labelled refunded until an actual Stripe refund is confirmed.
+- Use server-owned booking drafts with bounded expiry, minimal personal data and safe same-origin sign-in return URLs. Preserve guest fallback when sign-in is abandoned.
+- Reconcile the existing `bookings.user_id` reference to `public.users` with authenticated identities before attaching ownership. Group bookings require a reviewed equivalent ownership model.
+- RLS currently denies direct normal-client table access; do not disable RLS to make account history work. Add narrowly scoped ownership policies or a server-authorized history API.
+- No new migrations, coupons, credentials or production changes are authorized by this planning document.
+
+See [implementation plan](docs/features/checkout-implementation-plan.md), [coupon specification](docs/features/checkout-coupons.md) and [optional sign-in specification](docs/features/optional-checkout-sign-in.md).
 
 ---
 

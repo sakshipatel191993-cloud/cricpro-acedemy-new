@@ -8,11 +8,17 @@ The app is in `apps/web`. Its existing, ignored `apps/web/.env.local` contains
 the provider configuration. Do not copy secrets into Git, remove this file when
 switching branches, or launch another checkout without checking its environment.
 
-## Branches consolidated on 22 September 2026
+## All feature branches merged on 23 September 2026
+
+`feature/local-review` now includes every feature branch below, including the
+security/coupon and WhatsApp histories. See [the integration report](integration-review-2026-09-23.md)
+for current verification, rollout gates and previously planned features that are
+not implemented. The merge is local only; it is **not ready to deploy unchanged
+against the existing database/configuration**.
 
 | Branch | Scope | Readiness |
 | --- | --- | --- |
-| `feature/local-review` | Original notifications/WhatsApp work plus the latest coaching, hours, footer, email and session-age updates | Currently running against the existing database configuration |
+| `feature/local-review` | All five feature branches, with resolved checkout/notification integration | Build/tests pass; local UI available, checkout activation gated |
 | `feature/email-notifications` | Enquiry emails, branded notifications and booking/payment PDFs | Existing feature history, imported without rewriting it |
 | `feature/coaching-hours` | Coaching directory, opening hours, footer/maps and session-age rules | Existing feature history, imported without rewriting it |
 | `feature/whatsapp-notifications` | WhatsApp onboarding, consent, dispatch and recovery preparation | Requires provider onboarding/settings before real sending |
@@ -24,8 +30,9 @@ switching branches, or launch another checkout without checking its environment.
 `feature/admin-coupons` is based on `feature/secure-checkout`, not on `main`.
 Shared reservation/discount infrastructure is intentionally in the prerequisite
 branch; the child branch adds the administrator-facing coupon management flow.
-The checkout branches do not yet include the separate WhatsApp branch. Resolve
-and test that integration before combining them for release.
+The individual checkout branches retain their original tips. Their combined
+integration, including WhatsApp consent and paid notification dispatch, is on
+`feature/local-review`. Do not force-reset that branch to an individual feature tip.
 
 The complete checkout/coupon implementation was imported byte-for-byte from the
 previous local work, excluding generated Next.js agent/type files and Supabase
@@ -53,7 +60,11 @@ booking columns, access/recovery schema and coupons migration must first be
 reviewed/applied to the intended database, and historical time/price conventions
 must pass the documented rollout audit. Keys alone do not perform migrations.
 
-## Verified after consolidation
+## Historical verification before the security/coupon merge (22 September)
+
+These results describe the earlier checkout implementation, not the current
+merged checkout. The current slot endpoint intentionally returns 503 until the
+new schema/configuration and timestamp/price audit are ready.
 
 - Four lane tabs render in the browser.
 - Selecting 23 September 2026 loads eight Lane 1 slots, 15:00 through 22:00.

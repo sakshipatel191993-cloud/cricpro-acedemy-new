@@ -10,6 +10,8 @@ test('transactional templates are branded, escaped, and have correct reply routi
   class Resend { emails = { send: async (payload) => { messages.push(payload); return { data: { id: 'mock' } } } } }
   const exports = {}
   const documentExports = {}
+  const couponExports = {}
+  new Function('exports', ts.transpileModule(fs.readFileSync(path.join(__dirname, '../coupon-summary.ts'), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText)(couponExports)
   const location = { LOCATION: { name: 'Cricpro Centre of Excellence', address: 'Marsh Hill, B23 7EY', googleMapsUrl: 'https://maps.google.com', appleMapsUrl: 'https://maps.apple.com' } }
   const documentCode = ts.transpileModule(fs.readFileSync(path.join(__dirname, 'booking-documents.ts'), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText
   new Function('exports', 'require', 'Buffer', documentCode)(documentExports, name => name === '@/lib/location' ? location : require(name), Buffer)
@@ -17,7 +19,7 @@ test('transactional templates are branded, escaped, and have correct reply routi
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
     exports, console: { log() {}, warn() {}, error() {} },
     process: { env: { RESEND_API_KEY: 'test', EMAIL_FROM: 'noreply@cricprocoe.com', ADMIN_EMAIL: 'info@cricprocoe.com' } },
-    require: (name) => name === 'resend' ? { Resend } : name.includes('booking-documents') ? documentExports : location,
+    require: (name) => name === 'resend' ? { Resend } : name.includes('coupon-summary') ? couponExports : name.includes('booking-documents') ? documentExports : location,
   })
   const inquiry = { name: '<script>Test</script>', email: 'customer@example.com', type: 'birthday_party', message: 'First line\nSecond <img src=x onerror=alert(1)>', phone: '' }
   await exports.sendInquiryConfirmation(inquiry)

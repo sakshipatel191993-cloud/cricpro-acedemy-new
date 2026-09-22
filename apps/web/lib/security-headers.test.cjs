@@ -1,0 +1,17 @@
+const { test } = require('node:test')
+const assert = require('node:assert/strict')
+const { pathToFileURL } = require('node:url')
+const path = require('node:path')
+
+test('security headers cover every route without blocking payment navigation', async () => {
+  const { default: config } = await import(pathToFileURL(path.join(__dirname, '../next.config.mjs')).href)
+  assert.equal(config.poweredByHeader, false)
+  const [rule] = await config.headers()
+  assert.equal(rule.source, '/:path*')
+  const headers = Object.fromEntries(rule.headers.map(({ key, value }) => [key, value]))
+  assert.equal(headers['X-Content-Type-Options'], 'nosniff')
+  assert.equal(headers['X-Frame-Options'], 'DENY')
+  assert.equal(headers['Referrer-Policy'], 'strict-origin-when-cross-origin')
+  assert.equal(headers['Permissions-Policy'], 'camera=(), microphone=(), geolocation=()')
+  assert.equal(headers['Content-Security-Policy'], "frame-ancestors 'none'; object-src 'none'; base-uri 'self'")
+})

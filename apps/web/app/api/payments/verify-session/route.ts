@@ -3,6 +3,10 @@ import { supabaseAdmin } from '@/lib/services/supabase';
 import { getStripe } from '@/lib/services/stripe';
 import { confirmGroupBooking } from '@/lib/services/confirm-group-booking';
 import { confirmBooking } from '@/lib/services/confirm-booking';
+import { dispatchBookingNotifications } from '@/lib/services/booking-outbox';
+import { accessibleScope, guestAccessEnabled, guestSameOrigin } from '@/lib/security/guest-access';
+import { enforceRateLimit } from '@/lib/security/rate-limit';
+import { readJsonBody } from '@/lib/security/request-body';
 
 export const maxDuration = 60;
 
@@ -12,10 +16,13 @@ export const maxDuration = 60;
  * if the `checkout.session.completed` webhook was delayed or missed.
  */
 export async function POST(request: NextRequest) {
+  if (!guestSameOrigin(request)) return NextResponse.json({ success:false,error:'Forbidden' },{ status:403 });
+  const limited = await enforceRateLimit(request,{ policy:'privateRead' });
+  if (limited) return limited;
   try {
-    const { sessionId } = await request.json();
+    const { sessionId } = await readJsonBody(request,2048);
 
-    if (!sessionId) {
+    if (typeof sessionId !== 'string' || !/^cs_[A-Za-z0-9_]{8,240}$/.test(sessionId)) {
       return NextResponse.json(
         { success: false, error: 'session_id is required' },
         { status: 400 }
@@ -33,6 +40,10 @@ export async function POST(request: NextRequest) {
 
     if (session.metadata?.booking_kind === 'group_session') {
       const booking = await confirmGroupBooking(session);
+      await dispatchBookingNotifications(5).catch(() => console.error('Booking notification dispatch deferred'));
+      if (!guestAccessEnabled() || !await accessibleScope(request,'group',booking.id)) {
+        return NextResponse.json({ success:true, booking:null },{ headers:{ 'Cache-Control':'private, no-store' } });
+      }
       return NextResponse.json({ success: true, booking: {
         booking_reference: booking.id,
         service_type: booking.session.session_kind === 'masterclass' ? 'masterclass' : 'group_session',
@@ -40,7 +51,7 @@ export async function POST(request: NextRequest) {
         schedule: booking.session.schedule,
         coach_name: booking.session.coach_name,
         amount: booking.amount,
-      } });
+      } }, { headers: { 'Cache-Control': 'private, no-store' } });
     }
 
     let bookingId = session.metadata?.booking_id;
@@ -63,26 +74,31 @@ export async function POST(request: NextRequest) {
     }
 
     await confirmBooking(bookingId, session.id);
+    await dispatchBookingNotifications(5).catch(() => console.error('Booking notification dispatch deferred'));
+
+    if (!guestAccessEnabled() || !await accessibleScope(request,'resource',bookingId)) {
+      return NextResponse.json({ success:true, booking:null },{ headers:{ 'Cache-Control':'private, no-store' } });
+    }
 
     // Fetch fresh booking details (with the lane/resource name) to show on the
     // confirmation page, regardless of whether this call or the webhook
     // performed the confirmation.
     const { data: bookingRow } = await supabaseAdmin
       .from('bookings')
-      .select('*, resources(name)')
+      .select('booking_reference,service_type,booking_date,start_at,end_at,amount,resources(name)')
       .eq('id', bookingId)
       .single();
 
     return NextResponse.json({
       success: true,
       booking: bookingRow
-        ? { ...bookingRow, resource_name: bookingRow.resources?.name ?? null }
+        ? { ...bookingRow, resource_name: (Array.isArray(bookingRow.resources) ? bookingRow.resources[0]?.name : null) ?? null }
         : null,
-    });
+    }, { headers: { 'Cache-Control': 'private, no-store' } });
   } catch (error: any) {
-    console.error('Verify session error:', error);
+    console.error('Payment verification unavailable');
     return NextResponse.json(
-      { success: false, error: error?.message || 'Failed to verify session' },
+      { success: false, error: 'Failed to verify session. Please retry or contact support.' },
       { status: 500 }
     );
   }

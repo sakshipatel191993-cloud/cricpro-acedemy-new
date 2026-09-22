@@ -109,6 +109,7 @@ export function BookingSuccessView({
         <p className="text-muted-foreground mb-4">
           {status === 'confirmed' ? 'Your payment was successful and your booking is confirmed.' : status === 'verifying' ? 'Please wait while we check your payment with Stripe.' : 'We could not verify your payment. If you have paid, retry verification or contact us before paying again.'}
         </p>
+        {status === 'confirmed' && <p className="mb-4"><Link className="underline" href="/booking-access">View booking and download private documents</Link></p>}
 
         {displayRefs.length > 0 && (
           <div className="bg-muted/40 rounded-lg px-4 py-3 mb-6 space-y-1">

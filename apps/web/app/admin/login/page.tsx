@@ -13,6 +13,7 @@ import { Input } from "@workspace/ui/components/input"
 import { Label } from "@workspace/ui/components/label"
 import { Button } from "@workspace/ui/components/button"
 import { Eye, EyeOff } from "lucide-react"
+import { safeReturnPath } from "@/lib/security/return-path"
 
 function AdminLoginForm() {
   const router = useRouter()
@@ -36,7 +37,7 @@ function AdminLoginForm() {
       const data = await res.json()
 
       if (data.success) {
-        const from = searchParams.get("from") ?? "/admin"
+        const from = safeReturnPath(searchParams.get("from"), "/admin")
         router.push(from)
         router.refresh()
       } else {

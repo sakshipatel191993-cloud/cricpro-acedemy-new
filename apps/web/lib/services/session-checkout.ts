@@ -17,10 +17,8 @@ export async function reconcileGroupCheckouts(sessionId: string) {
   if (error) throw error;
   for (const booking of data ?? []) {
     if (!booking.stripe_session_id) {
-      const { error: expireError } = await supabaseAdmin.from('group_session_bookings')
-        .update({ status: 'expired', payment_status: 'failed' })
-        .eq('id', booking.id).is('stripe_session_id', null).eq('status', 'pending_payment');
-      if (expireError) throw expireError;
+      // Missing ID can mean a lost Stripe response or failed persistence, not
+      // proof that no payment exists. Recovery must consult the durable attempt.
       continue;
     }
     const checkout = await getStripe().checkout.sessions.retrieve(booking.stripe_session_id);

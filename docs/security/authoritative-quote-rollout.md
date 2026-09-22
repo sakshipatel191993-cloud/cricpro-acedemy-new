@@ -1,0 +1,27 @@
+# Authoritative quote rollout gate
+
+Local implementation: 22 September 2026. No production migration, environment change or provider call is included.
+
+## Required checks before activation
+
+1. Apply/rehearse `20260922124455_authoritative_booking_quotes.sql` together with the guest-access and durable-payment migrations in an isolated database first. Quote tables are service-only, RLS-enabled and expose no browser policies. The reservation RPC is service-role-only and runs as its caller.
+2. Audit the historical timestamp convention in bookings, blocks and overrides. Old pages sent timezone-less values and used UTC-labelled venue wall time. The new path stores actual UTC instants converted from Europe/London. **Do not automatically shift historical rows.** Resolve each ambiguous future booking/block before setting `BOOKING_TIMEZONE_VERIFIED=true`.
+3. Review all active admin availability, pricing and override records. Set `BOOKING_PRICE_UNITS=hourly` only after confirming price fields are hourly; partial configured increments are prorated by minute and rounded once to the nearest penny. Lower priority numbers win. Equal-priority overlaps fail closed. Blocked intervals override custom prices. Missing/zero prices do not silently fall back to hardcoded lane prices.
+4. Verify explicit `resources.peak_price`/`offpeak_price` values or complete pricing rules. Lane hire prices come from that lane. Machine/side-arm requires exactly one active resource of its service type, using that service's rules/prices, plus an available active lane. Both resource intervals are checked and reserved. Multiple service resources require explicit selection support before enablement; ambiguous configuration is rejected.
+5. Configure the distributed limiter, guest access and durable payment/reconciliation settings and Stripe test mode. Enable `AUTHORITATIVE_QUOTES_ENABLED=true` only after end-to-end preview validation. Resource bookings require payments enabled; the insecure legacy free/immediate-confirmation fallback is not retained.
+
+## Implemented contract
+
+- Slot display and quote creation share one London-time engine. Only one date per slots request; a maximum 366-day horizon and 14-hour interval bound resource work. Availability increments come from admin rules (slot display requires at least 15-minute increments). Venue opening limits remain weekdays 15–23 and weekends 09–23; weekday off-peak is 15–17 only.
+- Review returns a stored, versioned ten-minute quote. One bounded HttpOnly same-site cookie binds the browser to the latest quote; only its hash is stored. A new review replaces that cookie. A quote is not a hold.
+- Booking creation accepts a quote ID and customer details, never a client price or timezone-less interval. The transaction locks the quote and inventory, checks the exact admin configuration snapshot, rechecks conflicts/buffers and creates at most one payable booking per quote. Any configuration change invalidates unreserved quotes and requires a fresh review. Previously reserved retries reuse the existing immutable booking/amount.
+- A database trigger also checks buffered lane/equipment overlap for other booking-insert/update paths. Existing rows are not rewritten. Pending holds remain occupied until the payment state machine safely terminates them; mere timestamp expiry cannot prove a payment did not settle.
+- UI selection is one start time plus duration. The displayed total covers the whole duration; it is not multiplied again. Final payment amount comes only from the reviewed quote. Browser timezone never filters out otherwise available UK slots.
+- The capability cookie is not an account credential and does not authorize unrelated history/cancellation. Customer data is not stored in quote rows. The existing pending-booking customer details remain tab-scoped sessionStorage; a separate server-draft/sign-in continuity feature is still required.
+- Amounts use integer pence, reject overflow, and are limited to 30–99,999,999 pence for supported GBP Stripe payments. Coupons are not activated by this change.
+
+## Verification and remaining rollout work
+
+Pure tests cover summer/winter/DST ambiguity, boundary pricing, weekends, precedence, blocked overlap, buffers, malformed inputs and charge bounds. The isolated SQL test transaction covers stored amount, duplicate reservation, wrong capability, expired quote, buffer conflict, admin-config change and browser-role privileges, then rolls back synthetic fixtures. An opt-in multi-connection PostgreSQL test also passes: simultaneous requests for one quote return the same booking, while overlapping distinct quotes allow only one reservation. It holds the first transaction open while the second requests the conflicting reservation, then removes only its uniquely identified synthetic rows. Run with `QUOTE_RACE_DB_PORT=55439` against the isolated local fixture database; it never reads production credentials. Real configured resource comparisons, browser payment flow and provider timeout/reconciliation tests must also pass before production activation.
+
+Rollback disables new quote creation/booking mutations without restoring the unsafe legacy endpoints. Keep webhook verification, in-flight checkout reconciliation, authorised guest views and immutable payment snapshots running. Do not drop quote data referenced by bookings. Review retention of expired unreferenced quotes with the owner; no destructive cleanup job is enabled here.

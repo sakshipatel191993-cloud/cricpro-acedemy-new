@@ -14,7 +14,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
 
-  if (isAdmin) {
+  if (isAdmin || pathname === "/booking-access") {
     return <>{children}</>;
   }
 

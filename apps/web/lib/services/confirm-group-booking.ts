@@ -1,12 +1,11 @@
 import type Stripe from 'stripe';
 import { supabaseAdmin } from '@/lib/services/supabase';
-import { sendGroupSessionConfirmation } from '@/lib/services/email';
 import { verifiedPayment } from '@/lib/services/booking-documents';
 import { dispatchWhatsApp } from '@/lib/services/whatsapp-dispatch';
 
 // Accept only sessions retrieved from Stripe or received through its signed webhook.
 export async function confirmGroupBooking(session: Stripe.Checkout.Session) {
-  if (session.payment_status !== 'paid' || session.metadata?.booking_kind !== 'group_session') {
+  if (session.mode !== 'payment' || session.payment_status !== 'paid' || session.metadata?.booking_kind !== 'group_session') {
     throw new Error('Payment has not been completed');
   }
   const { data: booking, error } = await supabaseAdmin.from('group_session_bookings')
@@ -23,17 +22,10 @@ export async function confirmGroupBooking(session: Stripe.Checkout.Session) {
   }
   if (booking.status !== 'pending_payment') throw new Error('Booking is no longer pending payment');
 
-  const { data: updated, error: updateError } = await supabaseAdmin.from('group_session_bookings')
-    .update({ status: 'confirmed', payment_status: 'paid' })
-    .eq('id', booking.id).eq('stripe_session_id', session.id).eq('status', 'pending_payment').select();
+  const { error: updateError } = await supabaseAdmin.rpc('confirm_booking_with_outbox', {
+    p_kind: 'group', p_booking_id: booking.id, p_session_id: session.id, p_payment: verifiedPayment(session),
+  });
   if (updateError) throw updateError;
   dispatchWhatsApp('group_session_bookings', booking.id);
-  if (updated?.length) {
-    await sendGroupSessionConfirmation(booking, {
-      title: booking.session.title, price: Number(booking.amount).toFixed(2),
-      session_kind: booking.session.session_kind,
-      schedule: booking.session.schedule,
-    }, verifiedPayment(session)).catch(error => console.error('Session confirmation email failed:', error));
-  }
   return { ...booking, status: 'confirmed', payment_status: 'paid' };
 }

@@ -29,7 +29,7 @@ export function recordWhatsAppConsent(phone: string, checked: unknown): WhatsApp
 
 /** Never trust client-provided consent timestamps or versions. No new column is
  * sent when unchecked, so the dormant release works before its migration. */
-export function whatsappConsentFields(phone: unknown, checked: unknown, enabled = process.env.WHATSAPP_ENABLED) {
+export function whatsappConsentFields(phone: unknown, checked: unknown, enabled = process.env.WHATSAPP_ENABLED): { whatsapp_consent?: WhatsAppConsent | null } {
   if (checked === undefined || checked === false) return {};
   if (checked !== true) throw new Error('Invalid WhatsApp consent');
   if (enabled !== 'true') throw new Error('WhatsApp updates are not available yet. Please uncheck WhatsApp updates to continue.');

@@ -1,50 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'admin123';
-const ADMIN_SECRET = process.env.ADMIN_SECRET ?? 'ngca-admin-secret-change-in-production';
-
-async function createSessionToken(): Promise<string> {
-  const timestamp = Date.now().toString();
-  const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    'raw',
-    enc.encode(ADMIN_SECRET),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-  const sigBuffer = await crypto.subtle.sign('HMAC', key, enc.encode(timestamp));
-  const sig = Array.from(new Uint8Array(sigBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-  return `${timestamp}.${sig}`;
-}
+import { adminAuthConfigured, createAdminSession, isSameOriginRequest, verifyAdminPassword } from '@/lib/security/admin-auth';
+import { enforceRateLimit } from '@/lib/security/rate-limit';
+import { readJsonBody, RequestBodyError } from '@/lib/security/request-body';
 
 export async function POST(request: NextRequest) {
+  if (!isSameOriginRequest(request)) return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+  if (!adminAuthConfigured()) return NextResponse.json({ success: false, error: 'Admin login is unavailable' }, { status: 503 });
+  const limited = await enforceRateLimit(request, { policy: 'adminLogin' });
+  if (limited) return limited;
   try {
-    const { password } = await request.json();
-
-    if (!password || password !== ADMIN_PASSWORD) {
-      return NextResponse.json({ success: false, error: 'Invalid password' }, { status: 401 });
-    }
-
-    const token = await createSessionToken();
-    const response = NextResponse.json({ success: true });
-
-    response.cookies.set('admin_session', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24,
-      path: '/',
+    const body = await readJsonBody(request, 4096);
+    if (!await verifyAdminPassword(body?.password)) return NextResponse.json({ success: false, error: 'Invalid password' }, { status: 401 });
+    const response = NextResponse.json({ success: true }, { headers: { 'Cache-Control': 'no-store' } });
+    response.cookies.set('admin_session', await createAdminSession(), {
+      httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 86400, path: '/',
     });
-
     return response;
-  } catch {
-    return NextResponse.json({ success: false, error: 'Login failed' }, { status: 500 });
+  } catch (error) {
+    if (error instanceof RequestBodyError) return NextResponse.json({ success: false, error: error.message }, { status: error.status });
+    return NextResponse.json({ success: false, error: 'Invalid login request' }, { status: 400 });
   }
 }
 
-export async function DELETE() {
-  const response = NextResponse.json({ success: true });
+export async function DELETE(request: NextRequest) {
+  if (!isSameOriginRequest(request)) return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+  const response = NextResponse.json({ success: true }, { headers: { 'Cache-Control': 'no-store' } });
   response.cookies.delete('admin_session');
   return response;
 }

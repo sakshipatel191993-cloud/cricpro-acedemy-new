@@ -4,270 +4,124 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@workspace/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@workspace/ui/components/card';
-import { Badge } from '@workspace/ui/components/badge';
-import { Separator } from '@workspace/ui/components/separator';
-import { Calendar, Clock, User, Mail, Phone, CreditCard, ArrowLeft, Loader2 } from 'lucide-react';
+import { Calendar, CreditCard, ArrowLeft, Loader2 } from 'lucide-react';
 import { LocationDirections } from '@/components/location-directions';
 import { WhatsAppOptIn } from '@/components/whatsapp-opt-in';
+import { supabase } from '@/lib/services/supabase';
+import { CouponField } from '@/components/coupon-field';
+import type { CouponSelection } from '@/lib/coupons';
 
 interface PendingBooking {
-  serviceType: string;
-  serviceLabel: string;
-  resourceId?: string;
-  bookingDate: string;
-  selectedSlots: string[];
-  slots: Array<{ time: string; price: string }>;
-  duration: string;
-  totalPrice: number;
-  customerName: string;
-  customerEmail: string;
-  customerPhone?: string;
-  playerCount?: number;
-  notes?: string;
+  serviceType: string; serviceLabel: string; resourceId?: string; bookingDate: string;
+  selectedSlots: string[]; duration: string; customerName: string; customerEmail: string;
+  customerPhone?: string; playerCount?: number; notes?: string;
 }
-
-function formatTime(time: string) {
-  const hour = parseInt(time.split(':')[0] ?? '0');
-  const min = time.split(':')[1] ?? '00';
-  if (hour === 0) return `12:${min} AM`;
-  if (hour < 12) return `${hour}:${min} AM`;
-  if (hour === 12) return `12:${min} PM`;
-  return `${hour - 12}:${min} PM`;
-}
-
-function formatDate(dateStr: string) {
-  const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+interface ReviewedQuote {
+  id: string; expiresAt: string; amountPence: number; resourceName: string;
+  startAt: string; endAt: string;
+  breakdown: { startTime: string; endTime: string; hourlyPence: number; minutes: number }[];
 }
 
 export default function BookingConfirmPage() {
   const router = useRouter();
   const [booking, setBooking] = useState<PendingBooking | null>(null);
+  const [quote, setQuote] = useState<ReviewedQuote | null>(null);
+  const [loadingQuote, setLoadingQuote] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [whatsappConsent, setWhatsappConsent] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [coupon, setCoupon] = useState<CouponSelection | null>(null);
+  const [couponBusy, setCouponBusy] = useState(false);
+
+  async function fetchQuote(pending: PendingBooking) {
+    setLoadingQuote(true); setQuote(null); setCoupon(null); setCouponBusy(false); setError('');
+    try {
+      if (!Array.isArray(pending.selectedSlots) || pending.selectedSlots.length !== 1) throw new Error('Please go back and choose one start time per checkout.');
+      const response = await fetch('/api/quotes', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ serviceType: pending.serviceType, resourceId: pending.resourceId,
+          bookingDate: pending.bookingDate, startTime: pending.selectedSlots[0],
+          durationMinutes: Number(pending.duration) * 60 }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'Could not load your quote.');
+      setQuote(data.quote);
+      sessionStorage.setItem('reviewedBookingQuote', JSON.stringify({ pending: JSON.stringify(pending), quote: data.quote }));
+      setNotice('This is the current server-calculated price. Please review it before paying. A quote does not reserve availability.');
+    } catch (error) { setError(error instanceof Error ? error.message : 'Could not load your quote.'); }
+    finally { setLoadingQuote(false); }
+  }
 
   useEffect(() => {
     const raw = sessionStorage.getItem('pendingBooking');
     if (!raw) { router.replace('/'); return; }
-    try { setBooking(JSON.parse(raw)); } catch { router.replace('/'); }
+    try {
+      const pending = JSON.parse(raw) as PendingBooking;
+      setBooking(pending);
+      const saved = JSON.parse(sessionStorage.getItem('reviewedBookingQuote') || 'null');
+      if (saved?.pending === JSON.stringify(pending) && saved?.quote?.id && Date.parse(saved.quote.expiresAt) > Date.now()) setQuote(saved.quote);
+      else void fetchQuote(pending);
+    } catch { router.replace('/'); }
   }, [router]);
 
   async function handlePayNow() {
-    if (!booking) return;
-    setSubmitting(true);
-    setError('');
-
-    try {
-      const bookingPromises = booking.selectedSlots.map(async (slotTime) => {
-        const startDateTime = `${booking.bookingDate}T${slotTime}:00`;
-        const endHour = parseInt(slotTime.split(':')[0] ?? '0') + parseInt(booking.duration);
-        const endMin = slotTime.split(':')[1] ?? '00';
-        const endDateTime = `${booking.bookingDate}T${endHour.toString().padStart(2, '0')}:${endMin}:00`;
-        const slot = booking.slots.find(s => s.time === slotTime);
-
-        const res = await fetch('/api/bookings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...(booking.resourceId ? { resourceId: booking.resourceId } : {}),
-            serviceType: booking.serviceType,
-            bookingDate: booking.bookingDate,
-            startAt: startDateTime,
-            endAt: endDateTime,
-            customerName: booking.customerName,
-            customerEmail: booking.customerEmail,
-            customerPhone: booking.customerPhone,
-            whatsappConsent,
-            playerCount: booking.playerCount,
-            notes: booking.notes,
-            amount: slot ? (parseFloat(slot.price) * parseInt(booking.duration)).toFixed(2) : '0',
-          }),
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.error || 'Failed to create booking');
-        return { booking: data.booking, paymentUrl: data.paymentUrl };
-      });
-
-      const results = await Promise.all(bookingPromises);
-      sessionStorage.removeItem('pendingBooking');
-
-      const firstPaymentUrl = results.find(r => r.paymentUrl)?.paymentUrl;
-      if (firstPaymentUrl) {
-        window.location.href = firstPaymentUrl;
-        return;
-      }
-      const refs = results.map(r => r.booking.booking_reference).join(',');
-      router.push(`/booking-success?ref=${encodeURIComponent(refs)}`);
-    } catch (err: any) {
-      const msg: string = err.message ?? '';
-      const isConflict = msg.toLowerCase().includes('overlap') ||
-        msg.toLowerCase().includes('already booked') ||
-        msg.toLowerCase().includes('slot is') ||
-        msg.toLowerCase().includes('fully booked');
-      if (isConflict) {
-        setError('One or more slots were just taken. Please go back and choose different times.');
-      } else {
-        setError(msg || 'Something went wrong. Please try again.');
-      }
-      setSubmitting(false);
+    if (!booking || !quote || submitting || couponBusy) return;
+    if (Date.parse(quote.expiresAt) <= Date.now()) {
+      setError('Your quote has expired. Refresh it and review the current price before paying.');
+      return;
     }
+    setSubmitting(true); setError('');
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const response = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(session.session?.access_token ? { Authorization: `Bearer ${session.session.access_token}` } : {}) },
+        body: JSON.stringify({ quoteId: quote.id, customerName: booking.customerName, customerEmail: booking.customerEmail,
+          customerPhone: booking.customerPhone, playerCount: booking.playerCount, notes: booking.notes, whatsappConsent,
+          ...(coupon ? { couponCode: coupon.code, couponVersion: coupon.version } : {}) }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success || !data.paymentUrl) throw new Error(data.error || 'Could not start checkout.');
+      // Keep the scoped quote in this tab for retry after interrupted navigation.
+      window.location.assign(data.paymentUrl);
+    } catch (error) { setError(error instanceof Error ? error.message : 'Could not start checkout. Please retry.'); setSubmitting(false); }
   }
 
-  if (!booking) {
-    return (
-      <main className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </main>
-    );
-  }
-
-  const durationLabel = booking.duration === '1' ? '1 Hour' : `${booking.duration} Hours`;
-
+  if (!booking) return <main className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" aria-label="Loading booking" /></main>;
+  const money = (pence: number) => new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(pence / 100);
   return (
     <main className="min-h-screen py-12 md:py-16">
-      <div className="container px-4 mx-auto max-w-2xl">
-        <button
-          onClick={() => router.back()}
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </button>
-
-        <h1 className="text-2xl md:text-3xl font-bold mb-2">Review Your Booking</h1>
-        <p className="text-muted-foreground mb-8">Please check everything looks correct before paying.</p>
-
-        <div className="space-y-4">
-          {/* Service & Date */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Session Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-start gap-3">
-                <Badge className="mt-0.5 shrink-0">{booking.serviceLabel}</Badge>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span>{formatDate(booking.bookingDate)}</span>
-              </div>
-              <div className="flex items-start gap-3 text-sm">
-                <Clock className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                <div>
-                  <div className="flex flex-wrap gap-2">
-                    {booking.selectedSlots.map(t => (
-                      <span key={t} className="inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium">
-                        {formatTime(t)}
-                      </span>
-                    ))}
-                  </div>
-                  <p className="text-muted-foreground mt-1">{durationLabel} per slot</p>
-                </div>
-              </div>
-              {booking.playerCount && (
-                <div className="flex items-center gap-3 text-sm">
-                  <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span>{booking.playerCount} {booking.playerCount === 1 ? 'Player' : 'Players'}</span>
-                </div>
-              )}
-              {booking.notes && (
-                <p className="text-sm text-muted-foreground pl-7">{booking.notes}</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Customer Details */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Your Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center gap-3 text-sm">
-                <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span>{booking.customerName}</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span>{booking.customerEmail}</span>
-              </div>
-              {booking.customerPhone && (
-                <div className="flex items-center gap-3 text-sm">
-                  <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span>{booking.customerPhone}</span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Location */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Where to Find Us</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <LocationDirections />
-            </CardContent>
-          </Card>
-
-          {/* Price Breakdown */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Price Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {booking.selectedSlots.map(slotTime => {
-                const slot = booking.slots.find(s => s.time === slotTime);
-                const slotTotal = slot ? parseFloat(slot.price) * parseInt(booking.duration) : 0;
-                return (
-                  <div key={slotTime} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      {formatTime(slotTime)} × {durationLabel}
-                    </span>
-                    <span>£{slotTotal.toFixed(2)}</span>
-                  </div>
-                );
-              })}
-              <Separator className="my-2" />
-              <div className="flex justify-between font-bold text-lg">
-                <span>Total</span>
-                <span>£{Number(booking.totalPrice).toFixed(2)}</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Error */}
-          {error && (
-            <div className="rounded-md bg-destructive/10 border border-destructive/30 px-4 py-3 text-sm text-destructive">
-              {error}
-            </div>
-          )}
-
-          {/* Pay Now */}
-          <WhatsAppOptIn checked={whatsappConsent} onChange={setWhatsappConsent} disabled={submitting} />
-          <Button
-            size="lg"
-            className="w-full"
-            onClick={handlePayNow}
-            disabled={submitting}
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing…
-              </>
-            ) : (
-              <>
-                <CreditCard className="mr-2 h-4 w-4" />
-                Pay Now · £{Number(booking.totalPrice).toFixed(2)}
-              </>
-            )}
-          </Button>
-
-          <p className="text-center text-xs text-muted-foreground">
-            You'll be redirected to Stripe's secure checkout to complete your payment.
-          </p>
-        </div>
+      <div className="container px-4 mx-auto max-w-2xl space-y-5">
+        <Button variant="ghost" onClick={() => router.back()} disabled={submitting}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
+        <div><h1 className="text-2xl md:text-3xl font-bold">Review Your Booking</h1><p className="text-muted-foreground mt-2">One session, one payment. All session times are UK local time.</p></div>
+        <Card><CardHeader><CardTitle>Session details</CardTitle></CardHeader><CardContent className="space-y-3">
+          <p className="font-medium">{booking.serviceLabel}</p>
+          <p className="flex gap-2"><Calendar className="h-5 w-5" />{booking.bookingDate} · {booking.selectedSlots?.join(', ')} · {booking.duration} hour(s)</p>
+          {quote && <p>{quote.resourceName}</p>}
+          {booking.playerCount && <p>{booking.playerCount} player(s)</p>}
+          {booking.notes && <p className="text-muted-foreground">{booking.notes}</p>}
+        </CardContent></Card>
+        <Card><CardHeader><CardTitle>Your details</CardTitle></CardHeader><CardContent className="space-y-2">
+          <p>{booking.customerName}</p><p>{booking.customerEmail}</p><p>{booking.customerPhone}</p>
+        </CardContent></Card>
+        <Card><CardHeader><CardTitle>Where to find us</CardTitle></CardHeader><CardContent><LocationDirections /></CardContent></Card>
+        <Card><CardHeader><CardTitle>Price summary</CardTitle></CardHeader><CardContent className="space-y-3">
+          {loadingQuote ? <p role="status">Checking live price and availability…</p> : quote ? <>
+            {quote.breakdown.map((part, index) => <div className="flex justify-between text-sm gap-3" key={index}><span>{part.startTime}–{part.endTime} ({part.minutes} min)</span><span>{money(part.hourlyPence)} / hour</span></div>)}
+            <div className="flex justify-between text-lg font-bold border-t pt-3"><span>{coupon ? 'Subtotal' : 'Total'}</span><span>{money(quote.amountPence)}</span></div>
+            <p className="text-xs text-muted-foreground">Quote valid until {new Date(quote.expiresAt).toLocaleTimeString('en-GB', { timeZone: 'Europe/London' })} UK time. Totals are rounded once to the nearest penny.</p>
+          </> : <p>No current quote available.</p>}
+          <Button variant="outline" onClick={() => void fetchQuote(booking)} disabled={submitting || loadingQuote}>Refresh quote</Button>
+        </CardContent></Card>
+        {notice && <p className="text-sm text-muted-foreground" role="status">{notice}</p>}
+        {quote && <CouponField key={quote.id} quoteId={quote.id} value={coupon} onChange={setCoupon} onBusyChange={setCouponBusy} disabled={submitting || loadingQuote} />}
+        {error && <p role="alert" className="rounded-md bg-destructive/10 p-4 text-sm text-destructive">{error}</p>}
+        <WhatsAppOptIn checked={whatsappConsent} onChange={setWhatsappConsent} disabled={submitting} />
+        <Button size="lg" className="w-full" onClick={handlePayNow} disabled={!quote || loadingQuote || submitting || couponBusy}>
+          {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Processing…</> : <><CreditCard className="mr-2 h-4 w-4" />Pay now{quote ? ` · ${money(coupon?.totalMinor ?? quote.amountPence)}` : ''}</>}
+        </Button>
+        <p className="text-center text-xs text-muted-foreground">Continue as a guest. An account is not required. Payment is completed on Stripe’s secure checkout.</p>
       </div>
     </main>
   );

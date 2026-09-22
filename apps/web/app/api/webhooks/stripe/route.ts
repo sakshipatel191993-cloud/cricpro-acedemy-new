@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/services/supabase';
 import { verifyWebhookSignature } from '@/lib/services/stripe';
 import { confirmBooking } from '@/lib/services/confirm-booking';
+import { dispatchBookingNotifications } from '@/lib/services/booking-outbox';
 
 export const maxDuration = 60;
 
@@ -52,7 +53,9 @@ export async function POST(request: NextRequest) {
         } else {
           const { error } = await supabaseAdmin.from('bookings')
             .update({ status: 'cancelled', payment_status: 'failed' })
-            .eq('id', bookingId).eq('status', 'pending_payment');
+            .eq('id', bookingId)
+            .eq('stripe_session_id', session.id)
+            .eq('status', 'pending_payment');
           if (error) throw error;
         }
         break;
@@ -71,6 +74,11 @@ export async function POST(request: NextRequest) {
         console.log(`Unhandled Stripe event: ${event.type}`);
     }
 
+    // Fulfilment and outbox are committed together. Provider email outages must
+    // not undo a paid booking; the authenticated recovery worker retries these.
+    if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
+      await dispatchBookingNotifications(5).catch(() => console.error('Booking notification dispatch deferred'));
+    }
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error('Stripe webhook error:', error);

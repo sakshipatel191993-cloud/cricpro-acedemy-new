@@ -1,6 +1,8 @@
 import { Resend } from "resend"
+import { sendDurableEmail } from "@/lib/services/outbox-delivery"
 import { LOCATION } from "@/lib/location"
 import { bookingAttachments, type VerifiedPayment } from "@/lib/services/booking-documents"
+import { couponRows, type CouponSnapshot } from "@/lib/coupon-summary"
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY
 const FROM = process.env.EMAIL_FROM ?? "noreply@cricprocoe.com"
@@ -18,8 +20,10 @@ async function send(
   subject: string,
   html: string,
   replyTo: string = ADMIN_EMAIL,
-  attachments?: Awaited<ReturnType<typeof bookingAttachments>>
+  attachments?: Awaited<ReturnType<typeof bookingAttachments>>,
+  outboxId?: string
 ): Promise<boolean> {
+  if (outboxId) return sendDurableEmail(outboxId, { from: FROM, to, subject, html, replyTo, attachments })
   if (!resend) {
     console.warn(
       `[EMAIL] RESEND_API_KEY not set — not sending. To: ${to} | Subject: ${subject}`
@@ -69,6 +73,7 @@ export interface BookingEmailData {
   customer_email: string
   player_count?: number | null
   payment?: VerifiedPayment
+  coupon_snapshot?: CouponSnapshot | null
 }
 
 function escapeHtml(value: string): string {
@@ -129,7 +134,7 @@ function bookingConfirmationHtml(b: BookingEmailData) {
       b.player_count === 1 ? "1 player" : `${b.player_count} players`,
     ])
   }
-  rows.push(["Amount", `£${Number(b.amount).toFixed(2)}`])
+  rows.push(...couponRows(b.coupon_snapshot).map(([key, value]): [string, string] => [key, escapeHtml(value)]), ["Amount", `£${Number(b.amount).toFixed(2)}`])
 
   const detailRows = rows
     .map(([label, value], index) => {
@@ -239,29 +244,53 @@ function groupSessionConfirmationHtml(
   booking: {
     player_name: string
     parent_name: string
+    coupon_snapshot?: CouponSnapshot | null
   },
   session: { title: string; price: string; session_kind?: string; schedule?: string }
 ) {
-  return brandedEmail(`${session.session_kind === 'masterclass' ? 'Masterclass' : 'Group Session'} Booking Confirmed!`, `Hi ${booking.parent_name}, your player's registration is confirmed.`, [["Player", booking.player_name], ["Session", session.title], ...(session.schedule ? [["Schedule", session.schedule] as [string, string]] : []), ["Session fee", `£${Number(session.price).toFixed(2)}`]], locationDirectionsHtml() + '<p style="margin:24px 0 0;">Please arrive 10 minutes before the session starts. Full cricket kit is recommended.</p>')
+  return brandedEmail(`${session.session_kind === 'masterclass' ? 'Masterclass' : 'Group Session'} Booking Confirmed!`, `Hi ${booking.parent_name}, your player's registration is confirmed.`, [["Player", booking.player_name], ["Session", session.title], ...(session.schedule ? [["Schedule", session.schedule] as [string, string]] : []), ...couponRows(booking.coupon_snapshot), ["Session fee", `£${Number(session.price).toFixed(2)}`]], locationDirectionsHtml() + '<p style="margin:24px 0 0;">Please arrive 10 minutes before the session starts. Full cricket kit is recommended.</p>')
 }
 
 // ─── Exported functions ───────────────────────────────────────────────────────
 
-export async function sendBookingConfirmation(booking: BookingEmailData) {
+export async function sendGuestBookingAccess(recipient: string, accessUrl: string) {
+  // Do not log the link/token or put player details in the subject.
+  const html = brandedEmail(
+    'View your booking', 'You requested access to one CricPro booking.', [],
+    `<p><a href="${escapeHtml(accessUrl)}" style="display:inline-block;padding:14px 20px;background:#15803d;color:white;">View booking securely</a></p><p>This single-use link expires in 15 minutes. Anyone you forward it to can access this booking. If you did not request it, ignore this email. For help reply to this email or contact info@cricprocoe.com.</p>`
+  );
+  if (!resend) return false;
+  try {
+    const { error } = await resend.emails.send({ from:FROM,to:recipient,subject:'Your secure CricPro booking access link',html,replyTo:ADMIN_EMAIL });
+    if (error) console.warn('[EMAIL] Booking access delivery failed');
+    return !error;
+  } catch { console.warn('[EMAIL] Booking access delivery unavailable'); return false; }
+}
+
+function withBookingAccess(html: string, reference: string) {
+  if (process.env.GUEST_BOOKING_ACCESS_ENABLED !== 'true') return html;
+  const base = process.env.NEXT_PUBLIC_APP_URL;
+  if (!base) return html;
+  const url = new URL('/booking-access',base).toString();
+  return html.replace('</body>', `<p style="padding:20px;text-align:center;font-family:Arial,sans-serif;"><a href="${escapeHtml(url)}">View booking and download documents securely</a><br>Booking reference: ${escapeHtml(reference)}<br>Use your booking email to request a private access link.</p></body>`);
+}
+
+export async function sendBookingConfirmation(booking: BookingEmailData, outboxId?: string) {
   const attachments = await bookingAttachments({
     reference: booking.booking_reference, customer: booking.customer_name, email: booking.customer_email,
     service: titleCase(booking.service_type), payment: booking.payment,
-    details: [["Date", booking.booking_date], ["Time", `${formatTime(booking.start_at)}${booking.end_at ? ` - ${formatTime(booking.end_at)}` : ""}`],
+    details: [...couponRows(booking.coupon_snapshot), ["Date", booking.booking_date], ["Time", `${formatTime(booking.start_at)}${booking.end_at ? ` - ${formatTime(booking.end_at)}` : ""}`],
       ...(booking.resource_name ? [["Facility", booking.resource_name] as [string, string]] : [])],
   })
-  await send(
+  return send(
     booking.customer_email,
     `Booking Confirmed – ${booking.booking_reference} | Cricpro Centre of Excellence`,
-    bookingConfirmationHtml(booking), ADMIN_EMAIL, attachments
+    withBookingAccess(bookingConfirmationHtml(booking),booking.booking_reference), ADMIN_EMAIL, attachments, outboxId
   )
 }
 
 export async function sendAdminBookingNotification(booking: {
+  coupon_snapshot?: CouponSnapshot | null
   booking_reference: string
   service_type: string
   booking_date: string
@@ -269,20 +298,21 @@ export async function sendAdminBookingNotification(booking: {
   amount: string
   customer_name: string
   customer_email: string
-}) {
+}, outboxId?: string) {
   const service = booking.service_type
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase())
-  await send(
+  return send(
     ADMIN_EMAIL,
     `New Booking: ${booking.booking_reference} – ${service}`,
     brandedEmail("New Booking Received", "A new booking has been received. The customer and session details are below.", [
       ["Reference", booking.booking_reference], ["Service", service],
       ["Customer", booking.customer_name], ["Email", booking.customer_email],
       ["Date", booking.booking_date], ["Start time", formatTime(booking.start_at)],
+      ...couponRows(booking.coupon_snapshot),
       ["Amount", `£${Number(booking.amount).toFixed(2)}`],
     ], '<p style="margin:24px 0 0;">Reply to this email to contact the customer.</p>'),
-    booking.customer_email
+    booking.customer_email, undefined, outboxId
   )
 }
 
@@ -318,17 +348,18 @@ export async function sendAdminInquiryNotification(inquiry: {
 }
 
 export async function sendGroupSessionConfirmation(
-  booking: { id?: string; player_name: string; parent_name: string; parent_email: string },
+  booking: { id?: string; player_name: string; parent_name: string; parent_email: string; coupon_snapshot?: CouponSnapshot | null },
   session: { title: string; price: string; session_kind?: string; schedule?: string },
-  payment?: VerifiedPayment
+  payment?: VerifiedPayment,
+  outboxId?: string
 ) {
   const attachments = await bookingAttachments({ reference: booking.id || "session-booking", customer: booking.parent_name,
     email: booking.parent_email, service: session.title, payment,
-    details: [["Player", booking.player_name], ...(session.schedule ? [["Schedule", session.schedule] as [string, string]] : [])],
+    details: [...couponRows(booking.coupon_snapshot), ["Player", booking.player_name], ...(session.schedule ? [["Schedule", session.schedule] as [string, string]] : [])],
   })
-  await send(
+  return send(
     booking.parent_email,
     `${session.session_kind === 'masterclass' ? 'Masterclass' : 'Group Session'} Booking Confirmed | Cricpro Centre of Excellence`,
-    groupSessionConfirmationHtml(booking, session), ADMIN_EMAIL, attachments
+    withBookingAccess(groupSessionConfirmationHtml(booking, session),booking.id ?? ''), ADMIN_EMAIL, attachments, outboxId
   )
 }

@@ -16,11 +16,12 @@ import {
 import { Alert, AlertDescription } from "@workspace/ui/components/alert"
 import { Loader2, Eye, EyeOff } from "lucide-react"
 import { supabase } from "@/lib/services/supabase"
+import { safeReturnPath } from "@/lib/security/return-path"
 
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const from = searchParams.get("from") ?? "/"
+  const from = safeReturnPath(searchParams.get("from"))
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")

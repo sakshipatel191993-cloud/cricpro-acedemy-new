@@ -11,9 +11,12 @@ function load(file, deps) {
 }
 (async()=>{
  let emails=0, writes=0;
- const stripe={id:'cs_test_valid',payment_status:'unpaid',currency:'gbp',amount_total:4000,metadata:{booking_id:'b',booking_kind:'group_session'}};
+ const stripe={id:'cs_test_valid',mode:'payment',payment_status:'unpaid',currency:'gbp',amount_total:4000,metadata:{booking_id:'b',booking_kind:'group_session'}};
  const row={id:'b',status:'pending_payment',payment_status:'pending',amount:40,stripe_session_id:'cs_test_valid',parent_email:'test@example.invalid',session:{title:'Masterclass',price:40}};
- const db = { from() { return {
+ const db = { rpc: async(name, args) => {
+   assert.equal(name,'confirm_booking_with_outbox'); assert.equal(args.p_session_id,stripe.id);
+   writes++; emails++; Object.assign(row,{status:'confirmed',payment_status:'paid'}); return {data:true};
+ }, from() { return {
    select() { return this; }, eq() { return this; }, single: async () => ({data:row}),
    update(values) { writes++; return {
      eq() { return this; },
@@ -38,6 +41,7 @@ function load(file, deps) {
  const {POST}=load('apps/web/app/api/webhooks/stripe/route.ts', {
    'next/server':{NextResponse:{json:(body, options)=>({body,status:options?.status ?? 200})}},
    '@/lib/services/supabase':{supabaseAdmin:db},
+   '@/lib/services/booking-outbox':{dispatchBookingNotifications:async()=>({})},
    '@/lib/services/stripe':{verifyWebhookSignature:()=>event},
    '@/lib/services/confirm-booking':{confirmBooking:async()=>{throw Error('Wrong booking handler');}},
    '@/lib/services/confirm-group-booking':{confirmGroupBooking:async()=>{if(fail)throw Error('Database unavailable');fulfilled++;}},

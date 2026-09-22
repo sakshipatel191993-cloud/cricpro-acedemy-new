@@ -11,7 +11,6 @@ import { ArrowLeft, Clock, Users, Calendar, CheckCircle, Minus, Plus } from "luc
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/context/auth";
-import { isPastSlot } from "@/lib/time";
 import { DatePicker } from "@/components/date-picker";
 import { RateSchedule } from "@/components/rate-schedule";
 
@@ -70,7 +69,7 @@ export default function LaneHirePage() {
   // Refetch slots when lane or date changes
   useEffect(() => {
     if (selectedDate && selectedLaneId) fetchSlots();
-  }, [selectedDate, selectedLaneId]);
+  }, [selectedDate, selectedLaneId, formData.duration]);
 
   async function fetchSlots() {
     setLoading(true);
@@ -78,7 +77,7 @@ export default function LaneHirePage() {
     setSelectedSlots([]);
     setTotalPrice(0);
     try {
-      const res = await fetch(`/api/slots?resourceType=lane&resourceId=${selectedLaneId}&date=${selectedDate}`);
+      const res = await fetch(`/api/slots?resourceType=lane&resourceId=${selectedLaneId}&date=${selectedDate}&durationMinutes=${Number(formData.duration) * 60}`);
       const data = await res.json();
       if (data.success && data.dates.length > 0) {
         setSlots(data.dates[0].slots);
@@ -99,7 +98,7 @@ export default function LaneHirePage() {
 
   function toggleSlot(time: string) {
     setSelectedSlots(prev =>
-      prev.includes(time) ? prev.filter(t => t !== time) : [...prev, time].sort()
+      prev.includes(time) ? [] : [time]
     );
   }
 
@@ -114,7 +113,7 @@ export default function LaneHirePage() {
     let price = 0;
     selectedSlots.forEach(slotTime => {
       const slot = slots.find(s => s.time === slotTime);
-      if (slot) price += parseFloat(slot.price) * parseInt(formData.duration);
+      if (slot) price += parseFloat(slot.price);
     });
     setTotalPrice(price);
   }, [selectedSlots, slots, formData.duration]);
@@ -130,7 +129,7 @@ export default function LaneHirePage() {
 
   function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
-    if (selectedSlots.length === 0) { alert("Please select at least one time slot."); return; }
+    if (selectedSlots.length === 0) { alert("Please select one start time."); return; }
     if (totalPrice === 0) { alert("Please ensure selected slots have prices."); return; }
     if (!selectedLaneId) { alert("Please select a lane."); return; }
 
@@ -293,15 +292,15 @@ export default function LaneHirePage() {
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                       </div>
                     ) : !formData.date ? (
-                      <p className="text-muted-foreground text-sm">Select a date to see available slots.</p>
+                      <p className="text-muted-foreground text-sm">Select a date to see available slots. Choose one start time per checkout; prices include the selected duration.</p>
                     ) : slots.length === 0 ? (
                       <p className="text-muted-foreground text-sm">No slots available for this lane on the selected date.</p>
                     ) : (
                       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
                         {slots.map((slot) => {
                           const booked = slot.availableLanes === 0;
-                          const isPast = isPastSlot(slot.time, selectedDate);
-                          const disabled = booked || isPast;
+                          // Past/blocked intervals are already excluded by the London-time server quote.
+                          const disabled = booked;
                           const selected = selectedSlots.includes(slot.time);
                           return (
                             <button
@@ -318,8 +317,8 @@ export default function LaneHirePage() {
                               }`}
                             >
                               <span className="font-semibold text-sm">{formatTime(slot.time)}</span>
-                              <span className="opacity-70 mt-0.5">{booked ? 'Booked' : isPast ? 'Past' : 'Available'}</span>
-                              <span className="font-medium mt-0.5">£{parseFloat(slot.price).toFixed(2)}/hr</span>
+                              <span className="opacity-70 mt-0.5">{booked ? 'Unavailable' : 'Available'}</span>
+                              <span className="font-medium mt-0.5">£{parseFloat(slot.price).toFixed(2)} total</span>
                             </button>
                           );
                         })}
@@ -333,7 +332,7 @@ export default function LaneHirePage() {
                       <Select
                         value={formData.duration}
                         onValueChange={(value) => setFormData({...formData, duration: value})}
-                        disabled={selectedSlots.length === 0}
+                        disabled={loading}
                       >
                         <SelectTrigger id="duration">
                           <SelectValue placeholder="Select duration" />

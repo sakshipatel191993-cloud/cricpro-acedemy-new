@@ -22,10 +22,16 @@ export async function createCheckoutSession(params: {
   customerName: string;
   description: string;
   bookingKind?: 'group_session';
-  expiresAt?: number;
+  // Persist once with the booking so retries send identical Stripe parameters.
+  expiresAt: number;
+  appUrl?: string;
+  coupon?: { code: string; percent: number; subtotalMinor: number; discountMinor: number; totalMinor: number };
 }): Promise<{ sessionId: string; url: string }> {
+  if (!Number.isSafeInteger(params.expiresAt) || params.expiresAt <= 0) {
+    throw new Error('A fixed checkout expiry is required');
+  }
   const stripe = getStripe();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  const appUrl = params.appUrl ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
@@ -36,6 +42,7 @@ export async function createCheckoutSession(params: {
         currency: 'gbp',
         product_data: {
           name: params.description,
+          ...(params.coupon ? { description: `Original £${(params.coupon.subtotalMinor / 100).toFixed(2)} · ${params.coupon.code} (${params.coupon.percent}% off): -£${(params.coupon.discountMinor / 100).toFixed(2)}` } : {}),
           metadata: { booking_reference: params.bookingReference },
         },
         unit_amount: Math.round(parseFloat(params.amount) * 100),
@@ -46,11 +53,12 @@ export async function createCheckoutSession(params: {
       booking_id: params.bookingId,
       ...(params.bookingKind ? { booking_kind: params.bookingKind, service_type: params.serviceType } : {}),
       booking_reference: params.bookingReference,
+      ...(params.coupon ? { coupon_code: params.coupon.code, subtotal_minor: String(params.coupon.subtotalMinor), discount_minor: String(params.coupon.discountMinor) } : {}),
     },
     success_url: `${appUrl}/booking-success?session_id={CHECKOUT_SESSION_ID}&ref=${params.bookingReference}`,
     cancel_url: `${appUrl}/booking-cancel?ref=${params.bookingReference}&service=${params.serviceType}`,
-    expires_at: params.expiresAt ?? Math.floor(Date.now() / 1000) + 1800, // 30 min
-  }, params.bookingKind ? { idempotencyKey: `group-checkout-${params.bookingId}` } : undefined);
+    expires_at: params.expiresAt,
+  }, { idempotencyKey: `${params.bookingKind ? 'group' : 'resource'}-checkout-${params.bookingId}` });
 
   if (!session.url) throw new Error('Checkout URL unavailable');
   return { sessionId: session.id, url: session.url! };

@@ -287,6 +287,7 @@ export default function AccountPage() {
   const router = useRouter()
 
   const [bookings, setBookings] = useState<Booking[]>([])
+  const [privateBookings,setPrivateBookings] = useState<Array<{kind:string;id:string}>>([])
   const [bookingsLoading, setBookingsLoading] = useState(true)
   const [bookingsError, setBookingsError] = useState("")
   const [filter, setFilter] = useState<
@@ -326,14 +327,17 @@ export default function AccountPage() {
     setBookingsLoading(true)
     setBookingsError("")
     try {
-      const { data, error } = await supabase
-        .from("bookings")
-        .select("*, resource:resources(name, type)")
-        .or(`user_id.eq.${user.id},customer_email.eq.${user.email}`)
-        .order("start_at", { ascending: false })
-
-      if (error) throw error
-      setBookings((data as Booking[]) ?? [])
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error("Sign in required")
+      const response = await fetch("/api/bookings", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        cache: "no-store",
+      })
+      const data = await response.json()
+      if (!response.ok || !data.success) throw new Error("Failed to fetch bookings")
+      setBookings(data.bookings ?? [])
+      const privateResponse = await fetch('/api/my-booking-access',{ headers:{ Authorization:`Bearer ${session.access_token}` },cache:'no-store' })
+      if (privateResponse.ok) setPrivateBookings((await privateResponse.json()).bookings ?? [])
     } catch {
       setBookingsError("Failed to load bookings. Please try again.")
     } finally {
@@ -461,6 +465,12 @@ export default function AccountPage() {
 
           {/* ── My Bookings Tab ──────────────────────────────────────────── */}
           <TabsContent value="bookings" className="space-y-4">
+            {privateBookings.length > 0 && <section className="space-y-2"><h2 className="font-semibold">Secure booking documents</h2>{privateBookings.map(booking => <p key={booking.id}><Link className="underline" href={`/booking-access?kind=${booking.kind}&id=${booking.id}`}>{booking.kind === 'group' ? 'Group session / masterclass' : 'Resource booking'} · {booking.id.slice(0,8)} · View and download</Link></p>)}</section>}
+            <p className="text-sm text-muted-foreground">
+              Only bookings securely linked to your account appear here. For guest
+              or older bookings, please use your confirmation email or contact
+              info@cricprocoe.com. Matching an email address alone does not link a booking.
+            </p>
             {/* Filter buttons */}
             <div className="flex flex-wrap gap-2">
               {[

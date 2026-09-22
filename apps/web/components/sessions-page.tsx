@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@workspace/ui/components/card";
 import { Badge } from "@workspace/ui/components/badge";
@@ -14,6 +14,9 @@ import type { DbGroupSession } from "@/lib/db/schema";
 
 import { availableSessions } from '@/lib/session-options';
 import { isSessionAgeAllowed, sessionAgeOptions } from '@/lib/session-age';
+import { CouponField } from '@/components/coupon-field';
+import type { CouponSelection } from '@/lib/coupons';
+import { supabase } from '@/lib/services/supabase';
 
 export default function SessionsPage({ masterclass = false }: { masterclass?: boolean }) {
   const [coach, setCoach] = useState('');
@@ -23,6 +26,10 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
   const [sessions, setSessions] = useState<DbGroupSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [coupon, setCoupon] = useState<CouponSelection | null>(null);
+  const [couponBusy, setCouponBusy] = useState(false);
+  const checkoutDraft = useRef<{ fingerprint: string; requestId: string } | null>(null);
+  const submittingRef = useRef(false);
 
   const visibleSessions = availableSessions(sessions, masterclass ? 'masterclass' : 'group', coach);
   const selected = visibleSessions.find(session => session.id === sessionId);
@@ -50,6 +57,7 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (submittingRef.current || couponBusy) return;
     if (!selected || selected.current_players >= selected.max_players) {
       toast.error('Choose an available session');
       return;
@@ -59,6 +67,7 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
       return;
     }
     setSubmitting(true);
+    submittingRef.current = true;
 
     const formData = new FormData(e.currentTarget);
     const payload = {
@@ -70,14 +79,25 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
       parent_phone: formData.get("parent_phone"),
       parent_email: formData.get("parent_email"),
       emergency_contact: formData.get("emergency_contact"),
+      ...(coupon ? { couponCode: coupon.code, couponVersion: coupon.version, couponSubtotal: coupon.subtotalMinor } : {}),
     };
+    const fingerprint = JSON.stringify(payload);
+    if (!checkoutDraft.current || checkoutDraft.current.fingerprint !== fingerprint) {
+      checkoutDraft.current = { fingerprint, requestId: crypto.randomUUID() };
+    }
+    const requestBody = JSON.stringify({ ...payload, requestId: checkoutDraft.current.requestId });
 
     try {
-      const response = await fetch("/api/group-session-bookings", {
+      const auth = supabase ? (await supabase.auth.getSession()).data.session : null;
+      const submit = () => fetch("/api/group-session-bookings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        headers: { "Content-Type": "application/json", ...(auth ? { Authorization: `Bearer ${auth.access_token}` } : {}) },
+        body: requestBody,
       });
+      let response = await submit();
+      // First request establishes a private HttpOnly browser capability. Repeat
+      // once with the SAME request ID, never a new booking ID on network retries.
+      if (response.status === 428) response = await submit();
 
       const data = await response.json();
 
@@ -90,6 +110,7 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
       toast.error("An error occurred. Please try again.");
     } finally {
       setSubmitting(false);
+      submittingRef.current = false;
     }
   }
 
@@ -120,7 +141,7 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
           {masterclass && (
             <div className="max-w-5xl mx-auto mb-8 space-y-2">
               <Label htmlFor="coach_name">Coach Name</Label>
-              <select id="coach_name" value={coach} onChange={event => { setCoach(event.target.value); setSessionId(''); setPlayerAge(''); }} className="w-full sm:max-w-sm rounded-md border bg-background px-3 py-2" disabled={loading}>
+              <select id="coach_name" value={coach} onChange={event => { setCoach(event.target.value); setSessionId(''); setPlayerAge(''); setCoupon(null); setCouponBusy(false); }} className="w-full sm:max-w-sm rounded-md border bg-background px-3 py-2" disabled={loading || submitting || couponBusy}>
                 <option value="">All coaches</option>
                 {coaches.map(name => <option key={name} value={name}>{name}</option>)}
               </select>
@@ -256,7 +277,7 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="space-y-2">
                     <Label htmlFor="session_id">Select Session</Label>
-                    <Select name="session_id" required value={sessionId} onValueChange={(value) => { setSessionId(value ?? ""); setPlayerAge(''); }}>
+                    <Select name="session_id" required value={sessionId} disabled={submitting || couponBusy} onValueChange={(value) => { setSessionId(value ?? ""); setPlayerAge(''); setCoupon(null); setCouponBusy(false); }}>
                       <SelectTrigger id="session_id">
                         <SelectValue placeholder="Choose a session" />
                       </SelectTrigger>
@@ -327,14 +348,15 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
                   </div>
 
                   <p className="text-sm text-muted-foreground">Your place is confirmed after successful payment through Stripe.</p>
-                  <Button type="submit" size="lg" className="w-full" disabled={submitting || loading || !allowedAges.length || (!selected || selected.current_players >= selected.max_players)}>
+                  <CouponField key={sessionId} sessionId={sessionId} value={coupon} onChange={setCoupon} onBusyChange={setCouponBusy} disabled={submitting} />
+                  <Button type="submit" size="lg" className="w-full" disabled={submitting || couponBusy || loading || !allowedAges.length || (!selected || selected.current_players >= selected.max_players)}>
                     {submitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Processing...
                       </>
                     ) : (
-                      (price ? `Continue to Payment - £${price}` : "Choose a Session")
+                      (price ? `Continue to Payment - £${coupon ? (coupon.totalMinor / 100).toFixed(2) : price}` : "Choose a Session")
                     )}
                   </Button>
                 </form>

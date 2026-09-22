@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/services/supabase';
 import { sendInquiryConfirmation, sendAdminInquiryNotification } from '@/lib/services/email';
 import type { DbInquiry } from '@/lib/db/schema';
+import { whatsappConsentFields } from '@/lib/services/whatsapp';
+import { dispatchWhatsApp } from '@/lib/services/whatsapp-dispatch';
+
+export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,10 +29,21 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { type, name, email, phone, message } = body;
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ success: false, error: 'Invalid enquiry' }, { status: 400 });
+    }
+    const { type } = body;
+    const name = typeof body.name === 'string' ? body.name.trim() : '';
+    const email = typeof body.email === 'string' ? body.email.trim() : '';
+    const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
+    const message = typeof body.message === 'string' ? body.message.trim() : '';
 
     if (!type || !name || !email || !message) {
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
+    }
+
+    if (!['coaching', 'birthday_party', 'contact', 'general'].includes(type) || name.length > 200 || email.length > 254 || phone.length > 40 || message.length > 10100 || /[\r\n]/.test(name + email)) {
+      return NextResponse.json({ success: false, error: 'Invalid enquiry details' }, { status: 400 });
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -36,16 +51,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Invalid email format' }, { status: 400 });
     }
 
-    const inquiry: Partial<DbInquiry> = { type, name, email, phone: phone || null, message, status: 'new' };
+    let whatsappFields;
+    try { whatsappFields = whatsappConsentFields(phone, body.whatsappConsent); }
+    catch (error) { return NextResponse.json({ success: false, error: (error as Error).message }, { status: 400 }); }
+    const inquiry: Partial<DbInquiry> = { ...whatsappFields, type, name, email, phone: phone || null, message, status: 'new' };
 
     const { data, error } = await supabaseAdmin.from('inquiries').insert(inquiry).select().single();
     if (error) throw error;
+    dispatchWhatsApp('inquiries', data.id);
 
-    // Send emails (non-blocking)
-    sendInquiryConfirmation({ name, email, type }).catch(console.error);
-    sendAdminInquiryNotification({ name, email, type, message }).catch(console.error);
+    // Await both sends: detached promises may be terminated after a serverless response.
+    const [admin, confirmation] = await Promise.all([
+      sendAdminInquiryNotification({ name, email, type, message, phone }),
+      sendInquiryConfirmation({ name, email, type }),
+    ]);
 
-    return NextResponse.json({ success: true, inquiry: data });
+    return NextResponse.json({ success: true, inquiry: data, notification: { admin, confirmation } });
   } catch (error) {
     console.error('Inquiry creation error:', error);
     return NextResponse.json({ success: false, error: 'Failed to create inquiry' }, { status: 500 });

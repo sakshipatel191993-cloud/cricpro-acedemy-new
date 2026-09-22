@@ -7,6 +7,8 @@ import {
 import { paymentsEnabled, createCheckoutSession } from "@/lib/services/stripe"
 import { rateLimit } from "@/lib/utils/rate-limit"
 import type { DbBooking } from "@/lib/db/schema"
+import { isPeakHour } from "@/lib/hours"
+import { whatsappConsentFields } from "@/lib/services/whatsapp"
 
 const notConfigured = () =>
   NextResponse.json(
@@ -116,6 +118,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    let whatsappFields;
+    try { whatsappFields = whatsappConsentFields(customerPhone, body.whatsappConsent); }
+    catch (error) { return NextResponse.json({ success: false, error: (error as Error).message }, { status: 400 }); }
+
     // Bowling machine and side arm use a lane as the underlying resource
     const laneBasedServices = ["bowling_machine", "side_arm"]
     let resolvedResourceId: string = resourceId
@@ -207,8 +213,7 @@ export async function POST(request: NextRequest) {
     const startDate = new Date(startAt)
     const hour = startDate.getHours()
     const dayOfWeek = startDate.getDay()
-    const isPeak = hour >= 16 && hour < 22
-    const isOffPeak = (hour >= 12 && hour < 16) || hour >= 22
+    const isPeak = isPeakHour(dayOfWeek, hour)
     let pricePerHour: number
     if (serviceType === "bowling_machine") {
       pricePerHour = isPeak ? 32 : 22
@@ -230,6 +235,7 @@ export async function POST(request: NextRequest) {
     const status = paymentsEnabled ? "pending_payment" : "confirmed"
 
     const booking: Partial<DbBooking> = {
+      ...whatsappFields,
       booking_reference: bookingReference,
       resource_id: resolvedResourceId,
       service_type: serviceType,
@@ -282,16 +288,16 @@ export async function POST(request: NextRequest) {
 
     // Confirmed immediately (payments disabled or Stripe error)
     if (status === "confirmed") {
-      sendBookingConfirmation({
+      await Promise.allSettled([sendBookingConfirmation({
         ...data,
         customer_name: customerName,
         customer_email: customerEmail,
-      }).catch(console.error)
+      }),
       sendAdminBookingNotification({
         ...data,
         customer_name: customerName,
         customer_email: customerEmail,
-      }).catch(console.error)
+      })])
     }
 
     return NextResponse.json({

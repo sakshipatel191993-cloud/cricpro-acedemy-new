@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import type { DbGroupSession } from "@/lib/db/schema";
 
 import { availableSessions } from '@/lib/session-options';
+import { WhatsAppOptIn } from '@/components/whatsapp-opt-in';
 
 export default function SessionsPage({ masterclass = false }: { masterclass?: boolean }) {
   const [coach, setCoach] = useState('');
@@ -61,6 +62,7 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
       skill_level: formData.get("skill_level"),
       parent_name: formData.get("parent_name"),
       parent_phone: formData.get("parent_phone"),
+      whatsappConsent: formData.get("whatsappConsent") === "yes",
       parent_email: formData.get("parent_email"),
       emergency_contact: formData.get("emergency_contact"),
     };
@@ -318,6 +320,7 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
                     <Input id="emergency_contact" name="emergency_contact" placeholder="Name & number" required />
                   </div>
 
+                  <WhatsAppOptIn disabled={submitting} />
                   <p className="text-sm text-muted-foreground">Your place is confirmed after successful payment through Stripe.</p>
                   <Button type="submit" size="lg" className="w-full" disabled={submitting || loading || (!selected || selected.current_players >= selected.max_players)}>
                     {submitting ? (

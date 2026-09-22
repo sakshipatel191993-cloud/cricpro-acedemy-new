@@ -104,14 +104,14 @@ export function HeroSection() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.7 }}
-            className="flex items-center justify-center gap-3 pt-4 text-sm text-muted-foreground"
+            className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 pt-4 text-sm text-muted-foreground"
           >
             <span className="inline-block h-1 w-1 rounded-full bg-primary" />
-            Open 7 days
+            <span>Open 7 days</span>
             <span className="inline-block h-1 w-1 rounded-full bg-primary" />
-            Weekdays 12–11 PM · Weekends 9 AM–9 PM
-            <span className="inline-block h-1 w-1 rounded-full bg-primary" />4
-            Indoor Lanes
+            <span>Weekdays 9 AM–10 PM · Weekends 9 AM–11 PM</span>
+            <span className="inline-block h-1 w-1 rounded-full bg-primary" />
+            <span>4 Indoor Lanes</span>
           </motion.p>
         </div>
       </div>

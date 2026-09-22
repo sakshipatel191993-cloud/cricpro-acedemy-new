@@ -197,7 +197,7 @@ export default function LaneHirePage() {
                 <h3 className="font-semibold">Extended Hours</h3>
               </div>
               <p className="text-sm text-muted-foreground">
-                Weekdays 12–11 PM · Weekends 9 AM–9 PM
+                Weekdays 9 AM–10 PM · Weekends 9 AM–11 PM
               </p>
             </Card>
             <Card className="p-6">

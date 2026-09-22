@@ -4,6 +4,8 @@ import { getStripe } from '@/lib/services/stripe';
 import { confirmGroupBooking } from '@/lib/services/confirm-group-booking';
 import { confirmBooking } from '@/lib/services/confirm-booking';
 
+export const maxDuration = 60;
+
 /**
  * Verify-on-success fallback. Called by the booking-success page when the user
  * is redirected back from Stripe, so the booking is confirmed and emailed even

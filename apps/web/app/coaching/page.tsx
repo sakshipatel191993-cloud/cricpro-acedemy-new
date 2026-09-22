@@ -1,4 +1,5 @@
 import { Button } from "@workspace/ui/components/button"
+import { ContactForm } from "@/components/contact-form"
 import {
   Card,
   CardContent,
@@ -18,8 +19,12 @@ import {
 } from "@workspace/ui/components/select"
 import { Textarea } from "@workspace/ui/components/textarea"
 import Link from "next/link"
-import { ArrowLeft, Award, User, Target, Clock, Star } from "lucide-react"
+import { ArrowLeft, Award, User, Target, Clock } from "lucide-react"
 import { Metadata } from "next"
+import { supabaseAdmin } from "@/lib/services/supabase"
+
+// Read the admin-managed directory on every request, not only at deployment.
+export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
   title: "One-to-One Coaching | Cricpro Centre of Excellence",
@@ -27,7 +32,17 @@ export const metadata: Metadata = {
     "Personalised cricket coaching from experienced coaches. Tailored training programmes to accelerate your development.",
 }
 
-export default function CoachingPage() {
+export default async function CoachingPage() {
+  let coaches: { id: string; name: string }[] = []
+  let coachesUnavailable = false
+  try {
+    const { data, error } = await supabaseAdmin.from('coaches').select('id, name').order('name')
+    if (error) throw error
+    coaches = data ?? []
+  } catch {
+    coachesUnavailable = true
+    console.error('Unable to load public coaching directory')
+  }
   return (
     <main className="min-h-screen">
       {/* Hero */}
@@ -93,19 +108,34 @@ export default function CoachingPage() {
         </div>
       </section>
 
-      {/* Pricing Coming Soon */}
+      {/* Live coaching and admin-managed coach directory */}
       <section className="bg-muted/20 py-12 md:py-16">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-2xl text-center">
             <Card className="border-primary">
               <CardContent className="p-8">
-                <Badge className="mb-4">Coming Soon</Badge>
+                <Badge className="mb-4">Coaching Now Available</Badge>
                 <h3 className="mb-4 text-2xl font-bold">One-to-One Coaching</h3>
                 <p className="mb-6 text-muted-foreground">
-                  We're finalising our coaching programmes and pricing. Submit
-                  an enquiry to be notified when we launch and get priority
-                  booking.
+                  One-to-one coaching is now live. Enquire below for session
+                  availability and pricing. You don't need to choose a coach
+                  to make an enquiry.
                 </p>
+                <h4 className="mb-3 text-lg font-semibold">Available Coaches</h4>
+                {coaches.length > 0 ? (
+                  <ul className="mb-6 flex flex-wrap justify-center gap-3" aria-label="Available coaches">
+                    {coaches.map(coach => (
+                      <li key={coach.id} className="rounded-lg border bg-background px-5 py-3 font-medium">
+                        {coach.name}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mb-6 text-sm text-muted-foreground">
+                    {coachesUnavailable ? "We couldn't load the coach list right now. Please enquire below and we'll help you find a coach." : "Please enquire below for our latest coach availability."}
+                  </p>
+                )}
+                <Button asChild><Link href="#booking-form">Enquire About Coaching</Link></Button>
               </CardContent>
             </Card>
           </div>
@@ -124,16 +154,19 @@ export default function CoachingPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form className="space-y-6">
+                <ContactForm enquiryType="coaching">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="name">Your Name</Label>
-                      <Input id="name" placeholder="Full name" />
+                      <Input id="name" name="name" required maxLength={200} placeholder="Full name" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="age">Age (if under 18)</Label>
                       <Input
                         id="age"
+                        name="Age"
+                        min={1}
+                        max={100}
                         type="number"
                         placeholder="Player's age"
                       />
@@ -142,7 +175,7 @@ export default function CoachingPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="level">Current Skill Level</Label>
-                    <Select>
+                    <Select name="Skill level">
                       <SelectTrigger id="level">
                         <SelectValue placeholder="Select level" />
                       </SelectTrigger>
@@ -164,7 +197,7 @@ export default function CoachingPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="focus">Primary Focus Area</Label>
-                    <Select>
+                    <Select name="Focus area">
                       <SelectTrigger id="focus">
                         <SelectValue placeholder="What do you want to improve?" />
                       </SelectTrigger>
@@ -184,6 +217,9 @@ export default function CoachingPage() {
                     <Label htmlFor="goals">Goals & Expectations</Label>
                     <Textarea
                       id="goals"
+                      name="message"
+                      required
+                      maxLength={8000}
                       placeholder="What do you want to achieve from coaching?"
                     />
                   </div>
@@ -193,6 +229,9 @@ export default function CoachingPage() {
                       <Label htmlFor="email">Email</Label>
                       <Input
                         id="email"
+                        name="email"
+                        required
+                        maxLength={254}
                         type="email"
                         placeholder="your@email.com"
                       />
@@ -201,6 +240,8 @@ export default function CoachingPage() {
                       <Label htmlFor="phone">Phone</Label>
                       <Input
                         id="phone"
+                        name="phone"
+                        maxLength={40}
                         type="tel"
                         placeholder="07xxx xxx xxx"
                       />
@@ -210,11 +251,11 @@ export default function CoachingPage() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="club">Current Club (Optional)</Label>
-                      <Input id="club" placeholder="Your club" />
+                      <Input id="club" name="Club" maxLength={200} placeholder="Your club" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="availability">Preferred Times</Label>
-                      <Select>
+                      <Select name="Preferred times">
                         <SelectTrigger id="availability">
                           <SelectValue placeholder="When can you train?" />
                         </SelectTrigger>
@@ -240,7 +281,7 @@ export default function CoachingPage() {
                   <Button type="submit" size="lg" className="w-full">
                     Submit Enquiry
                   </Button>
-                </form>
+                </ContactForm>
               </CardContent>
             </Card>
           </div>

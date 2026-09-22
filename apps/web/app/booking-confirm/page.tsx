@@ -8,6 +8,7 @@ import { Badge } from '@workspace/ui/components/badge';
 import { Separator } from '@workspace/ui/components/separator';
 import { Calendar, Clock, User, Mail, Phone, CreditCard, ArrowLeft, Loader2 } from 'lucide-react';
 import { LocationDirections } from '@/components/location-directions';
+import { WhatsAppOptIn } from '@/components/whatsapp-opt-in';
 
 interface PendingBooking {
   serviceType: string;
@@ -44,6 +45,7 @@ export default function BookingConfirmPage() {
   const [booking, setBooking] = useState<PendingBooking | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [whatsappConsent, setWhatsappConsent] = useState(false);
 
   useEffect(() => {
     const raw = sessionStorage.getItem('pendingBooking');
@@ -76,6 +78,7 @@ export default function BookingConfirmPage() {
             customerName: booking.customerName,
             customerEmail: booking.customerEmail,
             customerPhone: booking.customerPhone,
+            whatsappConsent,
             playerCount: booking.playerCount,
             notes: booking.notes,
             amount: slot ? (parseFloat(slot.price) * parseInt(booking.duration)).toFixed(2) : '0',
@@ -241,6 +244,7 @@ export default function BookingConfirmPage() {
           )}
 
           {/* Pay Now */}
+          <WhatsAppOptIn checked={whatsappConsent} onChange={setWhatsappConsent} disabled={submitting} />
           <Button
             size="lg"
             className="w-full"

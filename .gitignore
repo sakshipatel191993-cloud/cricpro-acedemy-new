@@ -12,6 +12,8 @@ node_modules
 .env.development.local
 .env.test.local
 .env.production.local
+!.env.example
+!**/.env.example
 
 # Testing
 coverage
@@ -31,6 +33,11 @@ dist
 
 # Debug
 npm-debug.log*
+
+# Local CLI/package-manager caches
+.cli-data/
+.corepack-cache/
+.npm-cache/
 
 # Misc
 .DS_Store

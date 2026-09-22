@@ -1,4 +1,5 @@
 import { Button } from "@workspace/ui/components/button"
+import { ContactForm } from "@/components/contact-form"
 import {
   Card,
   CardContent,
@@ -130,16 +131,18 @@ export default function BirthdayPartiesPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form className="space-y-6">
+                <ContactForm enquiryType="birthday_party">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="parent-name">Parent's Name</Label>
-                      <Input id="parent-name" placeholder="Your full name" />
+                      <Input id="parent-name" name="name" required maxLength={200} placeholder="Your full name" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="contact">Contact Number</Label>
                       <Input
                         id="contact"
+                        name="phone"
+                        maxLength={40}
                         type="tel"
                         placeholder="07xxx xxx xxx"
                       />
@@ -150,6 +153,9 @@ export default function BirthdayPartiesPage() {
                     <Label htmlFor="email">Email Address</Label>
                     <Input
                       id="email"
+                      name="email"
+                      required
+                      maxLength={254}
                       type="email"
                       placeholder="your@email.com"
                     />
@@ -158,23 +164,26 @@ export default function BirthdayPartiesPage() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="child-name">Birthday Child's Name</Label>
-                      <Input id="child-name" placeholder="Child's name" />
+                      <Input id="child-name" name="Child name" required maxLength={200} placeholder="Child's name" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="age">Age Turning</Label>
-                      <Input id="age" type="number" placeholder="Age" />
+                      <Input id="age" name="Age" type="number" min={1} max={100} placeholder="Age" />
                     </div>
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="date">Preferred Date</Label>
-                      <Input id="date" type="date" />
+                      <Input id="date" name="Preferred date" type="date" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="guests">Expected Guests</Label>
                       <Input
                         id="guests"
+                        name="Guests"
+                        min={1}
+                        max={1000}
                         type="number"
                         placeholder="Number of guests"
                       />
@@ -183,13 +192,15 @@ export default function BirthdayPartiesPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="duration">Preferred Duration</Label>
-                    <Input id="duration" placeholder="e.g., 2 hours, 3 hours" />
+                    <Input id="duration" name="Duration" maxLength={100} placeholder="e.g., 2 hours, 3 hours" />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="requirements">Special Requirements</Label>
                     <Textarea
                       id="requirements"
+                      name="message"
+                      maxLength={8000}
                       placeholder="Dietary requirements, accessibility needs, special requests..."
                     />
                   </div>
@@ -198,6 +209,8 @@ export default function BirthdayPartiesPage() {
                     <Label htmlFor="source">How did you hear about us?</Label>
                     <Input
                       id="source"
+                      name="Referral source"
+                      maxLength={200}
                       placeholder="e.g., Friend, Facebook, Search"
                     />
                   </div>
@@ -205,7 +218,7 @@ export default function BirthdayPartiesPage() {
                   <Button type="submit" size="lg" className="w-full">
                     Submit Party Enquiry
                   </Button>
-                </form>
+                </ContactForm>
               </CardContent>
             </Card>
           </div>

@@ -43,3 +43,6 @@ npm-debug.log*
 .DS_Store
 *.pem
 .claude/
+
+# Supabase CLI local cache (not database migrations)
+supabase/.temp/

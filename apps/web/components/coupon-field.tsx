@@ -64,7 +64,7 @@ export function CouponField({
       }
     }
   }
-  if (!enabled) return null
+  if (!enabled || !quoteId) return null
   return (
     <fieldset
       className="space-y-2 rounded-lg border p-4"
@@ -95,11 +95,8 @@ export function CouponField({
       {value ? (
         <div role="status" className="text-sm">
           <p>
-            {value.code}: {value.percent}% off. You save £
+            {value.code}: you save £
             {(value.discountMinor / 100).toFixed(2)}.
-          </p>
-          <p className="font-semibold">
-            Total: £{(value.totalMinor / 100).toFixed(2)}
           </p>
           <Button
             type="button"
@@ -119,10 +116,6 @@ export function CouponField({
           {error}
         </p>
       )}
-      <p className="text-xs text-muted-foreground">
-        One code per booking. Customer eligibility and remaining uses are
-        checked again at payment. No account required.
-      </p>
     </fieldset>
   )
 }

@@ -28,21 +28,21 @@ const quote = load("apps/web/lib/booking-quote.ts")
 const helpers = load("apps/web/lib/coupons.ts", {
   "@/lib/booking-quote": quote,
 })
-test("coupon validation, integer rounding and UK calendar boundaries", () => {
+test("fixed coupon validation and UK calendar boundaries", () => {
   assert.equal(helpers.normalizeCoupon(" coach15 "), "COACH15")
   assert.throws(() => helpers.normalizeCoupon("<script>"))
-  assert.deepEqual(helpers.discountTotal(4000, 15), {
-    subtotalMinor: 4000,
-    discountMinor: 600,
-    totalMinor: 3400,
+  assert.deepEqual(helpers.fixedDiscountTotal(2500, 1000), {
+    subtotalMinor: 2500,
+    discountMinor: 1000,
+    totalMinor: 1500,
   })
-  assert.equal(helpers.discountTotal(4000, 20).totalMinor, 3200)
-  assert.equal(helpers.discountTotal(3333, 15).discountMinor, 500)
-  assert.throws(() => helpers.discountTotal(30, 99))
-  assert.throws(() => helpers.discountTotal(1000, 100))
+  assert.equal(helpers.fixedDiscountTotal(2500, 500).totalMinor, 2000)
+  assert.equal(helpers.fixedDiscountTotal(2500, 250).totalMinor, 2250)
+  assert.throws(() => helpers.fixedDiscountTotal(2499, 250))
+  assert.throws(() => helpers.fixedDiscountTotal(2500, 2500))
   const input = helpers.couponInput({
     code: "COACH15",
-    percent_off: 15,
+    discount_pounds: "10.00",
     max_uses: 50,
     start_date: "2030-06-01",
     end_date: "2030-07-01",
@@ -81,7 +81,7 @@ test("admin coupon CRUD requires authentication/origin and records bounded input
   })
   const body = {
     code: " coach15 ",
-    percent_off: 15,
+    discount_pounds: "10.00",
     max_uses: 50,
     start_date: "2030-06-01",
     end_date: "2030-07-01",
@@ -106,7 +106,7 @@ test("admin coupon CRUD requires authentication/origin and records bounded input
   assert.equal((await route.POST(req("POST"))).status, 201)
   assert.equal(calls.at(-1)[1].p_input.code, "COACH15")
   assert.equal(
-    (await route.POST(req("POST", { ...body, percent_off: 100 }))).status,
+    (await route.POST(req("POST", { ...body, discount_pounds: "0" }))).status,
     400
   )
   const item = {

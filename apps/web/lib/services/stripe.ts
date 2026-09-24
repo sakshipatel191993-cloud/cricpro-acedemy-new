@@ -25,7 +25,7 @@ export async function createCheckoutSession(params: {
   // Persist once with the booking so retries send identical Stripe parameters.
   expiresAt: number;
   appUrl?: string;
-  coupon?: { code: string; percent: number; subtotalMinor: number; discountMinor: number; totalMinor: number };
+  coupon?: { code: string; subtotalMinor: number; discountMinor: number; totalMinor: number };
 }): Promise<{ sessionId: string; url: string }> {
   if (!Number.isSafeInteger(params.expiresAt) || params.expiresAt <= 0) {
     throw new Error('A fixed checkout expiry is required');
@@ -42,7 +42,7 @@ export async function createCheckoutSession(params: {
         currency: 'gbp',
         product_data: {
           name: params.description,
-          ...(params.coupon ? { description: `Original £${(params.coupon.subtotalMinor / 100).toFixed(2)} · ${params.coupon.code} (${params.coupon.percent}% off): -£${(params.coupon.discountMinor / 100).toFixed(2)}` } : {}),
+          ...(params.coupon ? { description: `Original £${(params.coupon.subtotalMinor / 100).toFixed(2)} · ${params.coupon.code}: -£${(params.coupon.discountMinor / 100).toFixed(2)}` } : {}),
           metadata: { booking_reference: params.bookingReference },
         },
         unit_amount: Math.round(parseFloat(params.amount) * 100),

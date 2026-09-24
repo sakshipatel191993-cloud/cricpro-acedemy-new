@@ -6,7 +6,6 @@ export type CouponSelection = {
   subtotalMinor: number
   discountMinor: number
   totalMinor: number
-  percent: number
 }
 export function normalizeCoupon(value: unknown): string {
   if (typeof value !== "string") throw new Error("Enter a coupon code")
@@ -15,19 +14,16 @@ export function normalizeCoupon(value: unknown): string {
     throw new Error("Use 3–32 letters, numbers, hyphens or underscores")
   return code
 }
-export function discountTotal(subtotal: number, percent: number) {
+export function fixedDiscountTotal(subtotal: number, discountMinor: number) {
   if (
     !Number.isSafeInteger(subtotal) ||
-    subtotal < 30 ||
+    subtotal < 2500 ||
     subtotal > 99999999 ||
-    !Number.isInteger(percent) ||
-    percent < 1 ||
-    percent > 99
+    !Number.isSafeInteger(discountMinor) ||
+    discountMinor < 1 ||
+    discountMinor >= subtotal
   )
     throw new Error("Invalid discount")
-  const discountMinor = Math.round((subtotal * percent) / 100)
-  if (subtotal - discountMinor < 30)
-    throw new Error("Discount would reduce the payment below £0.30")
   return {
     subtotalMinor: subtotal,
     discountMinor,
@@ -36,10 +32,10 @@ export function discountTotal(subtotal: number, percent: number) {
 }
 export function couponInput(body: Record<string, unknown>) {
   const code = normalizeCoupon(body.code)
-  const percent = Number(body.percent_off),
-    maxUses = Number(body.max_uses)
-  if (!Number.isInteger(percent) || percent < 1 || percent > 99)
-    throw new Error("Percentage must be between 1 and 99")
+  const amount = Number(body.discount_pounds), maxUses = Number(body.max_uses)
+  const fixed_discount_minor = Math.round(amount * 100)
+  if (!Number.isFinite(amount) || fixed_discount_minor < 1 || fixed_discount_minor > 999999)
+    throw new Error("Discount amount must be between £0.01 and £9,999.99")
   if (!Number.isInteger(maxUses) || maxUses < 1 || maxUses > 100000)
     throw new Error("Usage cap must be between 1 and 100,000")
   if (!["draft", "active", "disabled"].includes(String(body.status)))
@@ -54,7 +50,7 @@ export function couponInput(body: Record<string, unknown>) {
     throw new Error("An active coupon must expire in the future")
   return {
     code,
-    percent_off: percent,
+    fixed_discount_minor,
     max_uses: maxUses,
     status: String(body.status),
     starts_at,

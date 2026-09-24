@@ -13,7 +13,7 @@ import {
 type Coupon = {
   id: string
   code: string
-  percent_off: number
+  fixed_discount_minor: number
   max_uses: number
   starts_at: string
   expires_at: string
@@ -24,7 +24,7 @@ type Coupon = {
 }
 type Draft = {
   code: string
-  percent_off: string
+  discount_pounds: string
   max_uses: string
   start_date: string
   end_date: string
@@ -37,13 +37,13 @@ const ukDate = (value: string | Date) =>
     month: "2-digit",
     day: "2-digit",
   }).format(new Date(value))
-function fresh(code = "", percent = "15"): Draft {
+function fresh(code = "", discount = "10.00"): Draft {
   const start = ukDate(new Date()),
     end = new Date(`${start}T12:00:00Z`)
   end.setUTCDate(end.getUTCDate() + 30)
   return {
     code,
-    percent_off: percent,
+    discount_pounds: discount,
     max_uses: "50",
     start_date: start,
     end_date: ukDate(end),
@@ -89,13 +89,13 @@ export default function CouponsPage() {
       coupon
         ? {
             code: coupon.code,
-            percent_off: String(coupon.percent_off),
+            discount_pounds: (coupon.fixed_discount_minor / 100).toFixed(2),
             max_uses: String(coupon.max_uses),
             start_date: ukDate(coupon.starts_at),
             end_date: ukDate(coupon.expires_at),
             status: coupon.status,
           }
-        : fresh(preset, preset === "COACH20" ? "20" : "15")
+        : fresh(preset, preset === "COACH20" ? "5.00" : preset === "CLUBDISCOUNT" ? "2.50" : "10.00")
     )
   }
   async function save(e: React.FormEvent) {
@@ -154,7 +154,7 @@ export default function CouponsPage() {
         <div>
           <h1 className="text-2xl font-bold">Coupons</h1>
           <p className="mt-2 text-muted-foreground">
-            Manage percentage discounts for every paid booking type.
+            Manage fixed discounts for lane hire bookings of £25 or more.
           </p>
         </div>
         <Button onClick={() => edit()} disabled={busy}>
@@ -169,8 +169,8 @@ export default function CouponsPage() {
       )}
       <p className="text-sm text-muted-foreground">
         One successful use per customer across all codes, tracked by booking
-        email and signed-in account where available. No stacking or minimum
-        spend, except Stripe’s £0.30 payment minimum. Paid uses are not
+        email and signed-in account where available. No stacking. Coupons apply
+        only to lane hire totals of £25 or more. Paid uses are not
         automatically restored after refunds.
       </p>
       {error && (
@@ -208,16 +208,17 @@ export default function CouponsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="coupon-percent">Discount (%)</Label>
+                  <Label htmlFor="coupon-discount">Discount amount (£)</Label>
                   <Input
-                    id="coupon-percent"
+                    id="coupon-discount"
                     type="number"
-                    min={1}
-                    max={99}
+                    min="0.01"
+                    max="9999.99"
+                    step="0.01"
                     required
-                    value={draft.percent_off}
+                    value={draft.discount_pounds}
                     onChange={(e) =>
-                      setDraft({ ...draft, percent_off: e.target.value })
+                      setDraft({ ...draft, discount_pounds: e.target.value })
                     }
                   />
                 </div>
@@ -364,6 +365,12 @@ export default function CouponsPage() {
               >
                 Prepare COACH20
               </Button>
+              <Button
+                variant="outline"
+                onClick={() => edit(undefined, "CLUBDISCOUNT")}
+              >
+                Prepare CLUBDISCOUNT
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -379,7 +386,7 @@ export default function CouponsPage() {
                 <div>
                   <h2 className="font-semibold">
                     {c.code}{" "}
-                    <span className="text-primary">{c.percent_off}% off</span>
+                    <span className="text-primary">£{(c.fixed_discount_minor / 100).toFixed(2)} off</span>
                   </h2>
                   <p className="text-sm">
                     {c.status} · {ukDate(c.starts_at)} to {ukDate(c.expires_at)}{" "}

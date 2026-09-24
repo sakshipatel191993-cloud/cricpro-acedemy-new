@@ -68,7 +68,7 @@ export default function BookingConfirmPage() {
   async function handlePayNow() {
     if (!booking || !quote || submitting || couponBusy) return;
     if (Date.parse(quote.expiresAt) <= Date.now()) {
-      setError('Your quote has expired. Refresh it and review the current price before paying.');
+      setError('Your quote has expired. Please return to choose your time again before paying.');
       return;
     }
     setSubmitting(true); setError('');
@@ -109,10 +109,14 @@ export default function BookingConfirmPage() {
         <Card><CardHeader><CardTitle>Price summary</CardTitle></CardHeader><CardContent className="space-y-3">
           {loadingQuote ? <p role="status">Checking live price and availability…</p> : quote ? <>
             {quote.breakdown.map((part, index) => <div className="flex justify-between text-sm gap-3" key={index}><span>{part.startTime}–{part.endTime} ({part.minutes} min)</span><span>{money(part.hourlyPence)} / hour</span></div>)}
-            <div className="flex justify-between text-lg font-bold border-t pt-3"><span>{coupon ? 'Subtotal' : 'Total'}</span><span>{money(quote.amountPence)}</span></div>
+            <div className="border-t pt-3">
+              {coupon ? <>
+                <div className="flex justify-between text-sm text-muted-foreground line-through"><span>Original price</span><span>{money(quote.amountPence)}</span></div>
+                <div className="mt-1 flex justify-between text-lg font-bold text-primary"><span>Discounted total</span><span>{money(coupon.totalMinor)}</span></div>
+              </> : <div className="flex justify-between text-lg font-bold"><span>Total</span><span>{money(quote.amountPence)}</span></div>}
+            </div>
             <p className="text-xs text-muted-foreground">Quote valid until {new Date(quote.expiresAt).toLocaleTimeString('en-GB', { timeZone: 'Europe/London' })} UK time. Totals are rounded once to the nearest penny.</p>
           </> : <p>No current quote available.</p>}
-          <Button variant="outline" onClick={() => void fetchQuote(booking)} disabled={submitting || loadingQuote}>Refresh quote</Button>
         </CardContent></Card>
         {notice && <p className="text-sm text-muted-foreground" role="status">{notice}</p>}
         {quote && <CouponField key={quote.id} quoteId={quote.id} value={coupon} onChange={setCoupon} onBusyChange={setCouponBusy} disabled={submitting || loadingQuote} />}

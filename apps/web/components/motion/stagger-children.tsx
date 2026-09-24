@@ -1,23 +1,23 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 
 const container = {
   hidden: {},
   show: {
     transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.1,
+      staggerChildren: 0.12,
+      delayChildren: 0.08,
     },
   },
 };
 
 const item = {
-  hidden: { opacity: 0, y: 28 },
+  hidden: { opacity: 0, y: 20 },
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
+    transition: { duration: 0.72, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
   },
 };
 
@@ -28,12 +28,14 @@ interface StaggerChildrenProps {
 }
 
 export function StaggerChildren({ children, className, delay = 0 }: StaggerChildrenProps) {
+  const reducedMotion = useReducedMotion();
+
   return (
     <motion.div
       variants={{ ...container, show: { ...container.show, transition: { ...container.show.transition, delayChildren: delay } } }}
-      initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, margin: "-80px" }}
+      initial={reducedMotion ? false : "hidden"}
+      whileInView={reducedMotion ? undefined : "show"}
+      viewport={{ once: true, amount: 0.14, margin: "0px 0px -8%" }}
       className={className}
     >
       {children}

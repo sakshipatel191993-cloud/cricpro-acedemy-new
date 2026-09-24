@@ -103,8 +103,11 @@ export async function enforceRateLimit(request: Request, options: { policy: Rate
   try { buckets = bucketsFor(request, options.policy, options.subject); }
   catch { return rejection(503, minute); }
   try {
-    const url = process.env.UPSTASH_REDIS_REST_URL;
-    const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+    // Vercel's managed Upstash integration exposes KV_REST_*; direct Upstash
+    // projects use UPSTASH_REDIS_REST_*. Support either without exposing either
+    // credential to the browser.
+    const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
     if (!url || !token) throw new Error('Limiter store unavailable');
     const endpoint = new URL(url);
     if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) throw new Error('Invalid limiter endpoint');

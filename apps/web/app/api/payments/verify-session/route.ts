@@ -83,16 +83,17 @@ export async function POST(request: NextRequest) {
     // Fetch fresh booking details (with the lane/resource name) to show on the
     // confirmation page, regardless of whether this call or the webhook
     // performed the confirmation.
-    const { data: bookingRow } = await supabaseAdmin
+    const { data: bookingRow, error: bookingError } = await supabaseAdmin
       .from('bookings')
-      .select('booking_reference,service_type,booking_date,start_at,end_at,amount,resources(name)')
+      .select('booking_reference,service_type,booking_date,start_at,end_at,amount,resource:resources!bookings_resource_id_fkey(name)')
       .eq('id', bookingId)
       .single();
+    if (bookingError) throw bookingError;
 
     return NextResponse.json({
       success: true,
       booking: bookingRow
-        ? { ...bookingRow, resource_name: (Array.isArray(bookingRow.resources) ? bookingRow.resources[0]?.name : null) ?? null }
+        ? { ...bookingRow, resource_name: (Array.isArray(bookingRow.resource) ? bookingRow.resource[0]?.name : (bookingRow.resource as { name?: string } | null)?.name) ?? null }
         : null,
     }, { headers: { 'Cache-Control': 'private, no-store' } });
   } catch (error: any) {

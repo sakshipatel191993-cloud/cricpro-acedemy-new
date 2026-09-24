@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabaseAdmin
       .from("bookings")
-      .select(admin ? "*" : "id,booking_reference,service_type,booking_date,start_at,end_at,status,payment_status,amount,created_at,resource:resources(name,type)")
+      .select(admin ? "*" : "id,booking_reference,service_type,booking_date,start_at,end_at,status,payment_status,amount,created_at,resource:resources!bookings_resource_id_fkey(name,type)")
       .order("created_at", { ascending: false })
       .limit(100)
 

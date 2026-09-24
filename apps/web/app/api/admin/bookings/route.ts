@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
       .from('bookings')
       .select(`
         *,
-        resource:resources(name, type)
+        resource:resources!bookings_resource_id_fkey(name, type)
       `, { count: 'exact' })
       .order('created_at', { ascending: false })
       .range((page - 1) * limit, page * limit - 1);

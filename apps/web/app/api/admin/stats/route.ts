@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 
     const { data: todaysBookings } = await supabaseAdmin
       .from('bookings')
-      .select('*, resource:resources(name)')
+      .select('*, resource:resources!bookings_resource_id_fkey(name)')
       .gte('start_at', today.toISOString())
       .lt('start_at', tomorrow.toISOString())
       .eq('status', 'confirmed')
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
 
     const { data: upcomingBookings } = await supabaseAdmin
       .from('bookings')
-      .select('*, resource:resources(name)')
+      .select('*, resource:resources!bookings_resource_id_fkey(name)')
       .gte('start_at', new Date().toISOString())
       .lt('start_at', nextWeek.toISOString())
       .eq('status', 'confirmed')

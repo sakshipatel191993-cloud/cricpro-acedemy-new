@@ -74,6 +74,7 @@ export interface BookingEmailData {
   player_count?: number | null
   payment?: VerifiedPayment
   coupon_snapshot?: CouponSnapshot | null
+  quote_id?: string | null
 }
 
 function escapeHtml(value: string): string {
@@ -89,16 +90,16 @@ function titleCase(value: string): string {
   return value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-function formatTime(iso: string): string {
+function formatTime(iso: string, quoteId?: string | null): string {
   const d = new Date(iso)
   return Number.isNaN(d.getTime())
     ? iso
     : d.toLocaleTimeString("en-GB", {
         hour: "2-digit",
         minute: "2-digit",
-        // Booking times are stored as wall-clock UK time (naive → UTC); render in
-        // UTC so the displayed time matches what was chosen, with no BST/GMT offset.
-        timeZone: "UTC",
+        // Authoritative quotes store real UTC instants. Legacy rows without a
+        // quote retain their historical wall-clock interpretation until audited.
+        timeZone: quoteId ? "Europe/London" : "UTC",
       })
 }
 
@@ -111,8 +112,8 @@ function bookingConfirmationHtml(b: BookingEmailData) {
     year: "numeric",
     timeZone: "UTC",
   })
-  const startTime = formatTime(b.start_at)
-  const endTime = b.end_at ? formatTime(b.end_at) : null
+  const startTime = formatTime(b.start_at, b.quote_id)
+  const endTime = b.end_at ? formatTime(b.end_at, b.quote_id) : null
   const time =
     endTime && endTime !== startTime ? `${startTime} – ${endTime}` : startTime
   const firstName = escapeHtml(b.customer_name.split(" ")[0] || b.customer_name)
@@ -279,7 +280,7 @@ export async function sendBookingConfirmation(booking: BookingEmailData, outboxI
   const attachments = await bookingAttachments({
     reference: booking.booking_reference, customer: booking.customer_name, email: booking.customer_email,
     service: titleCase(booking.service_type), payment: booking.payment,
-    details: [...couponRows(booking.coupon_snapshot), ["Date", booking.booking_date], ["Time", `${formatTime(booking.start_at)}${booking.end_at ? ` - ${formatTime(booking.end_at)}` : ""}`],
+    details: [...couponRows(booking.coupon_snapshot), ["Date", booking.booking_date], ["Time", `${formatTime(booking.start_at, booking.quote_id)}${booking.end_at ? ` - ${formatTime(booking.end_at, booking.quote_id)}` : ""}`],
       ...(booking.resource_name ? [["Facility", booking.resource_name] as [string, string]] : [])],
   })
   return send(
@@ -291,6 +292,7 @@ export async function sendBookingConfirmation(booking: BookingEmailData, outboxI
 
 export async function sendAdminBookingNotification(booking: {
   coupon_snapshot?: CouponSnapshot | null
+  quote_id?: string | null
   booking_reference: string
   service_type: string
   booking_date: string
@@ -308,7 +310,7 @@ export async function sendAdminBookingNotification(booking: {
     brandedEmail("New Booking Received", "A new booking has been received. The customer and session details are below.", [
       ["Reference", booking.booking_reference], ["Service", service],
       ["Customer", booking.customer_name], ["Email", booking.customer_email],
-      ["Date", booking.booking_date], ["Start time", formatTime(booking.start_at)],
+      ["Date", booking.booking_date], ["Start time", formatTime(booking.start_at, booking.quote_id)],
       ...couponRows(booking.coupon_snapshot),
       ["Amount", `£${Number(booking.amount).toFixed(2)}`],
     ], '<p style="margin:24px 0 0;">Reply to this email to contact the customer.</p>'),

@@ -10,7 +10,7 @@ export async function dispatchBookingNotifications(limit = 10) {
     try {
       if (job.resource_booking_id) {
         const { data: booking, error: readError } = await supabaseAdmin.from('bookings')
-          .select('*, resource:resources(name)').eq('id', job.resource_booking_id).single();
+          .select('*, resource:resources!bookings_resource_id_fkey(name)').eq('id', job.resource_booking_id).single();
         if (readError || !booking || booking.payment_status !== 'paid') throw new Error('Confirmed booking unavailable');
         success = job.recipient_role === 'admin'
           ? await sendAdminBookingNotification(booking, job.id)

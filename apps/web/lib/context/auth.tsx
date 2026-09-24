@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/services/supabase';
+import { isConfirmedCustomer } from '@/lib/security/confirmed-customer';
 
 interface AuthContextType {
   user: User | null;
@@ -27,14 +28,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!supabase) { setLoading(false); return; }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+      setSession(isConfirmedCustomer(session?.user) ? session : null);
+      setUser(isConfirmedCustomer(session?.user) ? session!.user : null);
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+      setSession(isConfirmedCustomer(session?.user) ? session : null);
+      setUser(isConfirmedCustomer(session?.user) ? session!.user : null);
     });
 
     return () => subscription.unsubscribe();

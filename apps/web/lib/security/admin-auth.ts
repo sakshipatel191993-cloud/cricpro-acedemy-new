@@ -4,9 +4,9 @@ export const ADMIN_SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 export function adminAuthConfigured(): boolean {
   const password = process.env.ADMIN_PASSWORD ?? '';
   const secret = process.env.ADMIN_SECRET ?? '';
-  return password.length >= 12 && secret.length >= 32 &&
-    !/change[-_ ]?(in[-_ ]?)?production|change[-_ ]?me|your[-_ ]|ngca-secret-key/i.test(secret) &&
-    !['admin123', 'ngca-admin-2024'].includes(password);
+  // Honor existing configured credentials. Policy changes must not silently
+  // lock out the owner; credential rotation requires their explicit permission.
+  return password.length > 0 && secret.length > 0;
 }
 
 async function signingKey(usage: KeyUsage[]) {

@@ -22,20 +22,20 @@ export function TestimonialsSection() {
         <div className="max-w-5xl mx-auto">
         <StaggerChildren className="grid md:grid-cols-3 gap-6">
           {testimonials.map((testimonial, index) => (
-            <StaggerItem key={index}>
-              <motion.div whileHover={{ y: -4, boxShadow: "0 0 30px rgba(225,29,72,0.15)" }} transition={{ duration: 0.2 }}>
-                <Card className="p-6 border-l-2 border-l-primary border-border/60 bg-card/80 h-full">
-                  <CardContent className="pt-0">
+            <StaggerItem key={index} className="h-full">
+              <motion.div className="h-full" whileHover={{ y: -4, boxShadow: "0 0 30px rgba(225,29,72,0.15)" }} transition={{ duration: 0.2 }}>
+                <Card className="flex h-full flex-col border-l-2 border-l-primary border-border/60 bg-card/80 p-6">
+                  <CardContent className="flex h-full flex-1 flex-col pt-0">
                     {/* Stars */}
                     <div className="flex gap-1 mb-4">
                       {Array.from({ length: 5 }).map((_, i) => (
                         <Star key={i} className="h-4 w-4 fill-primary text-primary" />
                       ))}
                     </div>
-                    <p className="text-muted-foreground mb-4 italic leading-relaxed">
+                    <p className="mb-4 flex-1 text-muted-foreground italic leading-relaxed">
                       &ldquo;{testimonial.content}&rdquo;
                     </p>
-                    <div className="pt-4 border-t border-border/40">
+                    <div className="mt-auto border-t border-border/40 pt-4">
                       <p className="font-semibold">{testimonial.name}</p>
                       <p className="text-sm text-primary">{testimonial.role}</p>
                     </div>

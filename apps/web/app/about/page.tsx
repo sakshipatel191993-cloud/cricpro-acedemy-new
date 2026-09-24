@@ -26,7 +26,7 @@ export default function AboutPage() {
   return (
     <main className="min-h-screen">
       {/* Hero */}
-      <section className="bg-muted/30 py-12 md:py-16">
+      <section className="public-page-hero">
         <div className="container mx-auto px-4">
           <Link
             href="/"
@@ -90,7 +90,7 @@ export default function AboutPage() {
             Why Train With Us
           </h2>
           <div className="mx-auto grid max-w-4xl gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            <Card className="p-6">
+            <Card className="public-feature-card">
               <Award className="mb-3 h-8 w-8 text-primary" />
               <h3 className="mb-2 font-semibold">Qualified Coaches</h3>
               <p className="text-sm text-muted-foreground">
@@ -98,35 +98,35 @@ export default function AboutPage() {
                 qualifications
               </p>
             </Card>
-            <Card className="p-6">
+            <Card className="public-feature-card">
               <Target className="mb-3 h-8 w-8 text-primary" />
               <h3 className="mb-2 font-semibold">Modern Facilities</h3>
               <p className="text-sm text-muted-foreground">
                 4 indoor lanes with professional lighting and equipment
               </p>
             </Card>
-            <Card className="p-6">
+            <Card className="public-feature-card">
               <Users className="mb-3 h-8 w-8 text-primary" />
               <h3 className="mb-2 font-semibold">All Abilities</h3>
               <p className="text-sm text-muted-foreground">
                 From beginners to representative players, we cater for everyone
               </p>
             </Card>
-            <Card className="p-6">
+            <Card className="public-feature-card">
               <Clock className="mb-3 h-8 w-8 text-primary" />
               <h3 className="mb-2 font-semibold">Flexible Hours</h3>
               <p className="text-sm text-muted-foreground">
                 Weekdays 3 PM–11 PM, weekends 9 AM–11 PM
               </p>
             </Card>
-            <Card className="p-6">
+            <Card className="public-feature-card">
               <Star className="mb-3 h-8 w-8 text-primary" />
               <h3 className="mb-2 font-semibold">Proven Results</h3>
               <p className="text-sm text-muted-foreground">
                 Players improve rapidly with our structured training approach
               </p>
             </Card>
-            <Card className="p-6">
+            <Card className="public-feature-card">
               <MapPin className="mb-3 h-8 w-8 text-primary" />
               <h3 className="mb-2 font-semibold">Easy Access</h3>
               <p className="text-sm text-muted-foreground">
@@ -145,7 +145,7 @@ export default function AboutPage() {
               Our Facility
             </h2>
             <div className="grid gap-6 sm:grid-cols-2">
-              <Card className="p-6">
+              <Card className="public-feature-card">
                 <h3 className="mb-4 font-semibold">Training Lanes</h3>
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li>• 4 professional indoor lanes</li>
@@ -154,7 +154,7 @@ export default function AboutPage() {
                   <li>• Full-length nets</li>
                 </ul>
               </Card>
-              <Card className="p-6">
+              <Card className="public-feature-card">
                 <h3 className="mb-4 font-semibold">Equipment</h3>
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li>• Professional bowling machines</li>
@@ -163,7 +163,7 @@ export default function AboutPage() {
                   <li>• Video analysis tools</li>
                 </ul>
               </Card>
-              <Card className="p-6">
+              <Card className="public-feature-card">
                 <h3 className="mb-4 font-semibold">Amenities</h3>
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li>• Clean changing facilities</li>
@@ -172,7 +172,7 @@ export default function AboutPage() {
                   <li>• Free parking</li>
                 </ul>
               </Card>
-              <Card className="p-6">
+              <Card className="public-feature-card">
                 <h3 className="mb-4 font-semibold">Operating Hours</h3>
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li>• {OPERATING_HOURS.weekday.label}: {OPERATING_HOURS.weekday.hours}</li>

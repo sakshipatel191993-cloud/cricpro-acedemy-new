@@ -33,7 +33,7 @@ export default function BirthdayPartiesPage() {
   return (
     <main className="min-h-screen">
       {/* Hero */}
-      <section className="bg-muted/30 py-12 md:py-16">
+      <section className="public-page-hero">
         <div className="container mx-auto px-4">
           <Link
             href="/"
@@ -62,28 +62,28 @@ export default function BirthdayPartiesPage() {
             Party Experience
           </h2>
           <div className="mx-auto grid max-w-5xl gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            <Card className="p-6">
+            <Card className="public-feature-card">
               <Gamepad2 className="mb-3 h-8 w-8 text-primary" />
               <h3 className="mb-2 font-semibold">Active Games</h3>
               <p className="text-sm text-muted-foreground">
                 Cricket-themed activities and games for all abilities
               </p>
             </Card>
-            <Card className="p-6">
+            <Card className="public-feature-card">
               <Users className="mb-3 h-8 w-8 text-primary" />
               <h3 className="mb-2 font-semibold">Qualified Coaches</h3>
               <p className="text-sm text-muted-foreground">
                 Professional coaching staff to run activities
               </p>
             </Card>
-            <Card className="p-6">
+            <Card className="public-feature-card">
               <Sparkles className="mb-3 h-8 w-8 text-primary" />
               <h3 className="mb-2 font-semibold">Premium Facility</h3>
               <p className="text-sm text-muted-foreground">
                 Indoor lanes with professional setup
               </p>
             </Card>
-            <Card className="p-6">
+            <Card className="public-feature-card">
               <Gift className="mb-3 h-8 w-8 text-primary" />
               <h3 className="mb-2 font-semibold">Celebration Space</h3>
               <p className="text-sm text-muted-foreground">
@@ -99,17 +99,17 @@ export default function BirthdayPartiesPage() {
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-4xl">
             <div className="grid gap-6 sm:grid-cols-3">
-              <Card className="p-6 text-center">
+              <Card className="public-feature-card text-center">
                 <Calendar className="mx-auto mb-3 h-8 w-8 text-primary" />
                 <h3 className="mb-1 font-semibold">Duration</h3>
                 <p className="text-sm text-muted-foreground">2-3 hours</p>
               </Card>
-              <Card className="p-6 text-center">
+              <Card className="public-feature-card text-center">
                 <Users className="mx-auto mb-3 h-8 w-8 text-primary" />
                 <h3 className="mb-1 font-semibold">Capacity</h3>
                 <p className="text-sm text-muted-foreground">Up to 20 guests</p>
               </Card>
-              <Card className="p-6 text-center">
+              <Card className="public-feature-card text-center">
                 <PartyPopper className="mx-auto mb-3 h-8 w-8 text-primary" />
                 <h3 className="mb-1 font-semibold">Age Range</h3>
                 <p className="text-sm text-muted-foreground">6-14 years</p>

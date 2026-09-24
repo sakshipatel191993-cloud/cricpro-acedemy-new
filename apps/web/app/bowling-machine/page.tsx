@@ -112,7 +112,7 @@ export default function BowlingMachinePage() {
   return (
     <main className="min-h-screen">
       {/* Hero */}
-      <section className="bg-muted/30 py-12 md:py-16">
+      <section className="public-page-hero">
         <div className="container px-4 mx-auto">
           <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -145,22 +145,22 @@ export default function BowlingMachinePage() {
         <div className="container px-4 mx-auto">
           <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center">Why Use a Bowling Machine?</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-            <Card className="p-6">
+            <Card className="public-feature-card">
               <Target className="h-8 w-8 text-primary mb-3" />
               <h3 className="font-semibold mb-2">Consistent Deliveries</h3>
               <p className="text-sm text-muted-foreground">Practice against repeatable bowling for muscle memory</p>
             </Card>
-            <Card className="p-6">
+            <Card className="public-feature-card">
               <Zap className="h-8 w-8 text-primary mb-3" />
               <h3 className="font-semibold mb-2">Rapid Improvement</h3>
               <p className="text-sm text-muted-foreground">More balls faced in an hour than a net session</p>
             </Card>
-            <Card className="p-6">
+            <Card className="public-feature-card">
               <Clock className="h-8 w-8 text-primary mb-3" />
               <h3 className="font-semibold mb-2">Flexible Pacing</h3>
               <p className="text-sm text-muted-foreground">Control your own session, take breaks as needed</p>
             </Card>
-            <Card className="p-6">
+            <Card className="public-feature-card">
               <Shield className="h-8 w-8 text-primary mb-3" />
               <h3 className="font-semibold mb-2">Safe Environment</h3>
               <p className="text-sm text-muted-foreground">Professional setup with proper safety measures</p>

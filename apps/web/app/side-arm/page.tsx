@@ -111,7 +111,7 @@ export default function SideArmPage() {
   return (
     <main className="min-h-screen">
       {/* Hero */}
-      <section className="bg-muted/30 py-12 md:py-16">
+      <section className="public-page-hero">
         <div className="container px-4 mx-auto">
           <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -171,17 +171,17 @@ export default function SideArmPage() {
         <div className="container px-4 mx-auto">
           <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center">Why Choose Side Arm Training?</h2>
           <div className="grid sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            <Card className="p-6">
+            <Card className="public-feature-card">
               <Flame className="h-8 w-8 text-primary mb-3" />
               <h3 className="font-semibold mb-2">High Intensity</h3>
               <p className="text-sm text-muted-foreground">Fast-paced training that mimics match conditions</p>
             </Card>
-            <Card className="p-6">
+            <Card className="public-feature-card">
               <TrendingUp className="h-8 w-8 text-primary mb-3" />
               <h3 className="font-semibold mb-2">Skill Development</h3>
               <p className="text-sm text-muted-foreground">Improve timing, placement, and shot selection</p>
             </Card>
-            <Card className="p-6">
+            <Card className="public-feature-card">
               <Trophy className="h-8 w-8 text-primary mb-3" />
               <h3 className="font-semibold mb-2">Competition Ready</h3>
               <p className="text-sm text-muted-foreground">Build confidence for match day performance</p>

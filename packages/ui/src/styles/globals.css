@@ -17,6 +17,33 @@
   padding-inline: 1rem;
 }
 
+/* Shared public-site rhythm. Booking and admin screens deliberately retain
+   their task-oriented layouts instead of inheriting marketing-page spacing. */
+@utility public-page-hero {
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  background:
+    linear-gradient(120deg, color-mix(in oklab, var(--primary) 10%, transparent), transparent 48%),
+    color-mix(in oklab, var(--muted) 45%, transparent);
+  padding-block: 3.5rem;
+
+  @media (min-width: 768px) {
+    padding-block: 5rem;
+  }
+}
+
+@utility public-feature-card {
+  height: 100%;
+  border-color: color-mix(in oklab, var(--border) 75%, transparent);
+  background-color: color-mix(in oklab, var(--card) 82%, transparent);
+  padding: 1.5rem;
+  transition: border-color 180ms ease, transform 180ms ease;
+
+  &:hover {
+    border-color: color-mix(in oklab, var(--primary) 46%, var(--border));
+    transform: translateY(-2px);
+  }
+}
+
 /* Light theme (default) */
 :root {
   --background: #fdfffa;
@@ -191,7 +218,8 @@
     @apply border-border outline-ring/50;
   }
   html {
-    color-scheme: light;
+    color-scheme: dark;
+    background: #0d1117;
   }
   html.dark {
     color-scheme: dark;

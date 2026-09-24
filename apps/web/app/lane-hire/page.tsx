@@ -158,7 +158,7 @@ export default function LaneHirePage() {
   return (
     <main className="min-h-screen">
       {/* Hero Section */}
-      <section className="bg-muted/30 py-12 md:py-16">
+      <section className="public-page-hero">
         <div className="container px-4 mx-auto">
           <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -191,7 +191,7 @@ export default function LaneHirePage() {
         <div className="container px-4 mx-auto">
           <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center">What You Get</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-            <Card className="p-6">
+            <Card className="public-feature-card">
               <div className="flex items-center gap-3 mb-3">
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <Clock className="h-5 w-5 text-primary" />
@@ -202,7 +202,7 @@ export default function LaneHirePage() {
                 Weekdays 3 PM–11 PM · Weekends 9 AM–11 PM
               </p>
             </Card>
-            <Card className="p-6">
+            <Card className="public-feature-card">
               <div className="flex items-center gap-3 mb-3">
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <Users className="h-5 w-5 text-primary" />
@@ -213,7 +213,7 @@ export default function LaneHirePage() {
                 Perfect for groups or team practice
               </p>
             </Card>
-            <Card className="p-6">
+            <Card className="public-feature-card">
               <div className="flex items-center gap-3 mb-3">
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <Calendar className="h-5 w-5 text-primary" />
@@ -224,7 +224,7 @@ export default function LaneHirePage() {
                 Book 1-3 hours at a time
               </p>
             </Card>
-            <Card className="p-6">
+            <Card className="public-feature-card">
               <div className="flex items-center gap-3 mb-3">
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <CheckCircle className="h-5 w-5 text-primary" />

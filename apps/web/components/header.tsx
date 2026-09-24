@@ -78,26 +78,26 @@ export function Header() {
       }`}
     >
       <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 xl:px-8">
-        <div className="flex h-24 items-center justify-between gap-6">
+        <div className="flex h-20 items-center justify-between gap-4 lg:gap-6">
           {/* Logo */}
           <Link href="/" className="group flex shrink-0 items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/crircpro-coe-logo.png"
               alt="Cricpro Centre of Excellence"
-              className="h-20 w-auto object-contain"
+              className="h-16 w-auto object-contain transition-transform duration-300 group-hover:scale-[1.03]"
               height={100}
               width={100}
             />
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden flex-1 items-center justify-center gap-5 min-[1440px]:flex">
+          <nav aria-label="Primary navigation" className="hidden flex-1 items-center justify-center gap-4 min-[1440px]:flex">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="group relative shrink-0 whitespace-nowrap text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                className="group relative shrink-0 whitespace-nowrap py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
               >
                 {link.label}
                 <span className="absolute -bottom-0.5 left-0 h-px w-0 bg-primary transition-all duration-300 group-hover:w-full" />
@@ -147,7 +147,7 @@ export function Header() {
               <Button
                 asChild
                 size="sm"
-                className="shadow-sm hover:shadow-primary/30"
+                className="rounded-md shadow-sm hover:shadow-primary/30"
               >
                 <Link href="/lane-hire">Book Now</Link>
               </Button>
@@ -186,11 +186,11 @@ export function Header() {
             </SheetTrigger>
             <SheetContent
               side="right"
-              className="w-[300px] border-l border-border/60 bg-background sm:w-[350px]"
+              className="w-[min(88vw,360px)] border-l border-border/60 bg-background p-6 sm:w-[360px]"
             >
               <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
               <SheetDescription className="sr-only">Navigate to the main sections of the site</SheetDescription>
-              <div className="mt-8 flex flex-col gap-6">
+              <div className="mt-4 flex flex-col gap-6">
                 <Link
                   href="/"
                   className="flex items-center gap-2"
@@ -211,7 +211,7 @@ export function Header() {
                     <Link
                       key={link.href}
                       href={link.href}
-                      className="block rounded-lg px-3 py-2 text-lg font-medium transition-colors hover:bg-primary/10 hover:text-primary"
+                    className="block rounded-md px-3 py-2.5 text-base font-medium transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
                       onClick={() => setIsOpen(false)}
                     >
                       {link.label}

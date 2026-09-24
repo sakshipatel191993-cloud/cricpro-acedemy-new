@@ -1,51 +1,31 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Card, CardContent } from "@workspace/ui/components/card";
-import { Badge } from "@workspace/ui/components/badge";
-import { Star } from "lucide-react";
+import { Button } from "@workspace/ui/components/button";
+import { ExternalLink, Star } from "lucide-react";
 import { FadeIn } from "@/components/motion/fade-in";
-import { StaggerChildren, StaggerItem } from "@/components/motion/stagger-children";
-import { testimonials } from "@/lib/data";
+
+const googleReviewsUrl = "https://share.google/QrYA2VqVli3hS7WJo";
 
 export function TestimonialsSection() {
   return (
-    <section className="py-16 md:py-24 bg-muted/30 border-y border-border/40">
+    <section className="border-y border-border/40 bg-muted/30 py-16 md:py-24">
       <div className="container mx-auto px-4">
-        <FadeIn className="text-center mb-12">
-          <Badge variant="outline" className="mb-4 border-primary/30 text-primary">Testimonials</Badge>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            What Our Cricketers Say
-          </h2>
+        <FadeIn className="mx-auto max-w-3xl text-center">
+          <div className="mx-auto flex w-fit items-center gap-1 text-primary" aria-label="Google Reviews">
+            {Array.from({ length: 5 }).map((_, index) => <Star key={index} className="h-5 w-5 fill-current" />)}
+          </div>
+          <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-primary">Google Reviews</p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-5xl">Hear directly from our customers</h2>
+          <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
+            Read the latest feedback on our official Google listing. Reviews are managed by Google and updated there directly.
+          </p>
+          <Button asChild size="lg" className="mt-8 rounded-md px-7">
+            <a href={googleReviewsUrl} target="_blank" rel="noopener noreferrer">
+              View Google Reviews <ExternalLink className="ml-2 h-4 w-4" aria-hidden="true" />
+              <span className="sr-only"> (opens Google in a new tab)</span>
+            </a>
+          </Button>
         </FadeIn>
-
-        <div className="max-w-5xl mx-auto">
-        <StaggerChildren className="grid md:grid-cols-3 gap-6">
-          {testimonials.map((testimonial, index) => (
-            <StaggerItem key={index} className="h-full">
-              <motion.div className="h-full" whileHover={{ y: -4, boxShadow: "0 0 30px rgba(225,29,72,0.15)" }} transition={{ duration: 0.2 }}>
-                <Card className="flex h-full flex-col border-l-2 border-l-primary border-border/60 bg-card/80 p-6">
-                  <CardContent className="flex h-full flex-1 flex-col pt-0">
-                    {/* Stars */}
-                    <div className="flex gap-1 mb-4">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} className="h-4 w-4 fill-primary text-primary" />
-                      ))}
-                    </div>
-                    <p className="mb-4 flex-1 text-muted-foreground italic leading-relaxed">
-                      &ldquo;{testimonial.content}&rdquo;
-                    </p>
-                    <div className="mt-auto border-t border-border/40 pt-4">
-                      <p className="font-semibold">{testimonial.name}</p>
-                      <p className="text-sm text-primary">{testimonial.role}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </StaggerItem>
-          ))}
-        </StaggerChildren>
-        </div>
       </div>
     </section>
   );

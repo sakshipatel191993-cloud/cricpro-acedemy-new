@@ -19,44 +19,44 @@ const companyLinks = [
   { href: "/login", label: "Sign In" },
   { href: "/signup", label: "Create Account" },
 ]
-const linkStyle = "inline-flex min-h-10 items-center text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+const linkStyle = "inline-flex min-h-11 items-center text-[15px] text-foreground/70 transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
 
 export function Footer() {
   return (
     <footer aria-label="Site footer" className="border-t border-border/60 bg-card/40">
-      <div className="mx-auto max-w-7xl px-5 pt-12 pb-6 sm:px-8 lg:pt-16">
+      <div className="mx-auto max-w-7xl px-4 pt-12 pb-6 sm:px-8 lg:pt-16">
         <div className="grid gap-10 lg:grid-cols-[1fr_1fr_1.15fr] lg:gap-12">
           <div>
-            <Link href="/" aria-label="Cricpro Centre of Excellence home" className="inline-flex items-center gap-4 rounded-lg focus-visible:outline-2 focus-visible:outline-primary">
-              <span className="relative block h-28 w-28 shrink-0 overflow-hidden">
-                <Image src="/crircpro-coe-logo-header.png" alt="" fill sizes="112px" className="object-contain" />
+            <Link href="/" aria-label="Cricpro Centre of Excellence home" className="inline-flex items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-primary">
+              <span className="relative block h-20 w-20 shrink-0 overflow-hidden sm:h-24 sm:w-24">
+                <Image src="/crircpro-coe-logo-header.png" alt="" fill sizes="(max-width: 640px) 80px, 96px" className="object-contain" />
               </span>
               <span>
-                <span className="block text-2xl font-bold tracking-tight">CRIC<span className="text-primary">PRO</span></span>
-                <span className="mt-1 block max-w-36 text-xs uppercase tracking-widest text-muted-foreground">Centre of Excellence</span>
+                <span className="block text-[1.35rem] font-extrabold leading-none tracking-[-0.045em] sm:text-2xl">CRIC<span className="text-primary">PRO</span></span>
+                <span className="mt-2 block max-w-36 text-[10px] font-medium uppercase leading-4 tracking-[0.18em] text-muted-foreground">Centre of Excellence</span>
               </span>
             </Link>
-            <p className="mt-5 text-lg font-semibold">Practice to Perfection.</p>
-            <p className="mt-3 max-w-sm text-sm leading-7 text-muted-foreground">
+            <p className="mt-7 max-w-md text-2xl font-semibold leading-tight tracking-[-0.04em]">Practice to <span className="text-primary">Perfection.</span></p>
+            <p className="mt-3 max-w-sm text-[15px] leading-7 text-muted-foreground">
               Your space to train, develop and enjoy cricket. Premium indoor lanes
               and expert coaching for every stage of your game.
             </p>
-            <p className="mt-5 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium">
+            <p className="mt-5 inline-flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-xs font-medium">
               <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-primary" />
               4 indoor lanes · Open 7 days
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-8">
             <nav aria-label="Footer services">
-              <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest">Train with us</h2>
-              <ul>
+              <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Train with us</h2>
+              <ul className="space-y-0.5">
                 {quickLinks.map(link => <li key={link.href}><Link href={link.href} className={linkStyle}>{link.label}</Link></li>)}
               </ul>
             </nav>
             <nav aria-label="Footer company">
-              <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest">Explore</h2>
-              <ul>
+              <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Explore</h2>
+              <ul className="space-y-0.5">
                 {companyLinks.map(link => <li key={link.href}><Link href={link.href} className={linkStyle}>{link.label}</Link></li>)}
               </ul>
             </nav>

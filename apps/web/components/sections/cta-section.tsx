@@ -8,27 +8,27 @@ import { FadeIn } from "@/components/motion/fade-in";
 export function CtaSection() {
   const reducedMotion = useReducedMotion();
   return (
-    <section className="bg-[#0b0e13] py-16 text-white md:py-24">
+    <section data-home-cta className="bg-[#0b0e13] py-14 text-white md:py-24">
       <div className="container px-4">
-        <div className="grid items-end gap-8 py-10 md:grid-cols-[1.2fr_.8fr] md:py-14">
+        <div className="grid items-end gap-8 py-2 md:grid-cols-[1.2fr_.8fr] md:py-14">
           <FadeIn>
             <p className="mb-4 text-xs font-semibold uppercase tracking-[0.14em] text-primary">Train your way</p>
-            <h2 className="max-w-xl text-4xl font-semibold tracking-[-0.04em] md:text-6xl">
-              Ready to Start?
+            <h2 className="max-w-2xl text-[clamp(2.7rem,9vw,4.5rem)] font-semibold leading-[1.02] tracking-[-0.055em]">
+              Put practice<br />into <span className="text-primary">play.</span>
             </h2>
-            <p className="mt-5 max-w-xl text-lg leading-8 text-white/70">
-              Your next level starts with practice. Book online in under 2 minutes.
+            <p className="mt-5 max-w-md text-base leading-7 text-white/70 sm:text-lg sm:leading-8">
+              Choose a lane and book your next session in under two minutes.
             </p>
           </FadeIn>
 
-          <FadeIn delay={0.2} className="flex flex-col gap-3 sm:flex-row md:justify-end">
-            <motion.div whileHover={reducedMotion ? undefined : { y: -2 }} whileTap={reducedMotion ? undefined : { scale: 0.98 }}>
-              <Button asChild size="lg" className="rounded-md px-7 text-base shadow-lg shadow-primary/25">
+          <FadeIn delay={0.2} className="flex gap-2 sm:gap-3 md:justify-end">
+            <motion.div className="min-w-0 flex-1 sm:flex-none" whileHover={reducedMotion ? undefined : { y: -2 }} whileTap={reducedMotion ? undefined : { scale: 0.98 }}>
+              <Button asChild size="lg" className="w-full rounded-md px-2 text-sm shadow-lg shadow-primary/25 sm:w-auto sm:px-7 sm:text-base">
                 <Link href="/lane-hire#booking-form">Book a Lane</Link>
               </Button>
             </motion.div>
-            <motion.div whileHover={reducedMotion ? undefined : { y: -2 }} whileTap={reducedMotion ? undefined : { scale: 0.98 }}>
-              <Button asChild variant="outline" size="lg" className="rounded-md border-white/30 bg-white/5 px-7 text-base text-white hover:border-white hover:bg-white/10 hover:text-white">
+            <motion.div className="min-w-0 flex-1 sm:flex-none" whileHover={reducedMotion ? undefined : { y: -2 }} whileTap={reducedMotion ? undefined : { scale: 0.98 }}>
+              <Button asChild variant="outline" size="lg" className="w-full rounded-md border-white/30 bg-white/5 px-2 text-sm text-white hover:border-white hover:bg-white/10 hover:text-white sm:w-auto sm:px-7 sm:text-base">
                 <Link href="/contact">Contact Us</Link>
               </Button>
             </motion.div>

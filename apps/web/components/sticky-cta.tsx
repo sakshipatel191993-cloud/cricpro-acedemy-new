@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 
 export function StickyCTA() {
   const [isVisible, setIsVisible] = useState(false);
+  const [isClosingAreaVisible, setIsClosingAreaVisible] = useState(false);
   const pathname = usePathname();
   const reducedMotion = useReducedMotion();
 
@@ -16,6 +17,20 @@ export function StickyCTA() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    const targets = [document.querySelector("[data-home-cta]"), document.querySelector("footer[aria-label='Site footer']")].filter((target): target is Element => target !== null);
+    const visibleTargets = new Set<Element>();
+    const observer = new IntersectionObserver(entries => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) visibleTargets.add(entry.target);
+        else visibleTargets.delete(entry.target);
+      }
+      setIsClosingAreaVisible(visibleTargets.size > 0);
+    });
+    targets.forEach(target => observer.observe(target));
+    return () => observer.disconnect();
+  }, [pathname]);
 
   // These pages already contain the booking/enquiry flow or its result.
   const hasOwnBookingFlow = [
@@ -26,10 +41,12 @@ export function StickyCTA() {
 
   if (hasOwnBookingFlow || pathname === "/contact" || pathname === "/about") return null;
 
+  const showSticky = isVisible && !isClosingAreaVisible;
+
   return (
     <>
       <AnimatePresence>
-        {isVisible && (
+        {showSticky && (
           <motion.div
             initial={reducedMotion ? false : { y: 32, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -47,7 +64,7 @@ export function StickyCTA() {
           </motion.div>
         )}
       </AnimatePresence>
-      {isVisible && <div className="h-[72px] lg:hidden" />}
+      {showSticky && <div className="h-[72px] lg:hidden" />}
     </>
   );
 }

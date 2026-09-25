@@ -10,7 +10,7 @@ export function whatsappJobPayload(table: string, row: Source, phone: string) {
   if (!['bookings', 'group_session_bookings'].includes(table) || row.status !== 'confirmed' || row.payment_status !== 'paid') return null;
   if (table === 'group_session_bookings') {
     if (!row.session?.title || !row.session?.schedule) return null;
-    return { event: 'booking_confirmed' as WhatsAppEvent, phone, consent, values: [row.parent_name, row.id, row.session.title, row.session.schedule] };
+    return { event: 'booking_confirmed' as WhatsAppEvent, phone, consent, values: [row.parent_name, row.booking_reference, row.session.title, row.session.schedule] };
   }
   const date = new Date(row.start_at);
   if (!Number.isFinite(date.getTime())) return null;

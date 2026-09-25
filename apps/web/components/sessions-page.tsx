@@ -305,7 +305,7 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
                           ))}
                         </SelectContent>
                       </Select>
-                      <p className="text-sm text-muted-foreground">{selected ? (allowedAges.length ? `Eligible ages: ${selected.age_group}` : 'Age group unavailable. Please contact us before booking.') : 'Select a session to see eligible ages.'}</p>
+                      <p className="text-sm text-muted-foreground">{selected ? (allowedAges.length ? `Eligible ages: ${allowedAges[0]}–${allowedAges[allowedAges.length - 1]} years` : 'Age group unavailable. Please contact us before booking.') : 'Select a session to see eligible ages.'}</p>
                     </div>
                   </div>
 

@@ -10,10 +10,19 @@ function load(file,deps){const m={exports:{}};new Function('require','module','e
  const session={id:'s1',title:'Class',session_kind:'group',price:'40.00',age_group:'11-15 years',session_date:'2030-01-01',start_time:'15:00:00',end_time:'16:00:00',schedule:'Synthetic'};
  const db={from(table){let id,insertValue;return{
   select(){return this},eq(name,value){if(name==='id')id=value;return this},
-  single:async()=>({data:table==='group_sessions'?session:rows.get(id)}),
+  single:async()=>{
+   if(table==='group_sessions')return {data:session};
+   if(insertValue){
+    if(rows.has(insertValue.id))return {data:null,error:{code:raceCapacity?'23514':'23505'}};
+    const created={...insertValue,booking_reference:'CCOE-ABC234'};
+    rows.set(insertValue.id,created);inserts++;
+    return {data:created,error:null};
+   }
+   return {data:rows.get(id)};
+  },
   maybeSingle:async()=>({data:rows.get(id)??null}),
   insert(v){insertValue=v;return this},
-  then(resolve){let error=null;if(rows.has(insertValue.id))error={code:raceCapacity?'23514':'23505'};else{rows.set(insertValue.id,{...insertValue});inserts++;}return Promise.resolve({error}).then(resolve)},
+  then(resolve){return Promise.resolve({data:rows.get(id)??null,error:null}).then(resolve)},
  }}};
  const route=load('apps/web/app/api/group-session-bookings/route.ts',{
   '@/lib/services/whatsapp': { whatsappConsentFields:(phone,checked)=>checked===true?{whatsapp_consent:{phone,version:'transactional-v1',grantedAt:new Date().toISOString()}}:{} },
@@ -22,6 +31,7 @@ function load(file,deps){const m={exports:{}};new Function('require','module','e
   '@/lib/services/supabase':{supabaseAdmin:db},
   '@/lib/services/stripe':{paymentsEnabled:true},
   '@/lib/services/checkout-attempts':{checkoutAppUrl:()=> 'http://127.0.0.1:3001',startPersistedCheckout:async params=>{
+   assert.equal(params.bookingReference,'CCOE-ABC234');
    if(!checkouts.has(params.bookingId)){checkouts.set(params.bookingId,{sessionId:'cs_'+params.bookingId,url:'https://checkout.stripe.com/'+params.bookingId});stripeCreates++;}
    if(failCheckout)throw Error('Unknown outcome');return checkouts.get(params.bookingId);
   }},

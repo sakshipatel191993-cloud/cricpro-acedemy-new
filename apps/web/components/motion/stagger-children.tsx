@@ -6,18 +6,18 @@ const container = {
   hidden: {},
   show: {
     transition: {
-      staggerChildren: 0.12,
-      delayChildren: 0.08,
+      staggerChildren: 0.075,
+      delayChildren: 0.04,
     },
   },
 };
 
 const item = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 14 },
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.72, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+    transition: { duration: 0.48, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
   },
 };
 
@@ -35,7 +35,7 @@ export function StaggerChildren({ children, className, delay = 0 }: StaggerChild
       variants={{ ...container, show: { ...container.show, transition: { ...container.show.transition, delayChildren: delay } } }}
       initial={reducedMotion ? false : "hidden"}
       whileInView={reducedMotion ? undefined : "show"}
-      viewport={{ once: true, amount: 0.14, margin: "0px 0px -8%" }}
+      viewport={{ once: true, amount: 0.12, margin: "0px 0px -5%" }}
       className={className}
     >
       {children}

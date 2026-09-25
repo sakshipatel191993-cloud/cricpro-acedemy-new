@@ -52,10 +52,10 @@ export default function ContactPage() {
           </Link>
           <div className="max-w-3xl">
             <Badge className="mb-4">Contact Us</Badge>
-            <h1 className="mb-4 text-3xl font-bold md:text-4xl lg:text-5xl">
+            <h1 className="mb-4 text-4xl font-semibold leading-tight tracking-tight md:text-5xl lg:text-6xl">
               Get in Touch
             </h1>
-            <p className="text-lg text-muted-foreground">
+            <p className="max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg">
               Have questions? We'd love to hear from you. Send us a message and
               we'll respond as soon as possible.
             </p>
@@ -70,7 +70,7 @@ export default function ContactPage() {
             {/* Contact Info */}
             <div className="space-y-8">
               <div>
-                <h2 className="mb-6 text-2xl font-bold">Contact Information</h2>
+                <h2 className="mb-6 text-2xl font-semibold tracking-tight">Contact Information</h2>
                 <div className="space-y-4">
                   <div className="flex items-start gap-4">
                     <div className="rounded-lg bg-primary/10 p-2">
@@ -156,11 +156,11 @@ export default function ContactPage() {
             </div>
 
             {/* Contact Form */}
-            <Card>
+            <Card className="border-border/80 shadow-sm">
               <CardHeader>
-                <CardTitle>Send us a Message</CardTitle>
+                <CardTitle className="text-xl font-semibold tracking-tight md:text-2xl">Send us a Message</CardTitle>
                 <CardDescription>
-                  Fill in the form below and we'll get back to you
+                  Tell us what you need and we’ll get back to you.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -184,7 +184,7 @@ export default function ContactPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Phone (Optional)</Label>
+                      <Label htmlFor="phone">Phone <span className="font-normal text-muted-foreground">(optional)</span></Label>
                       <Input
                         id="phone"
                         name="phone"
@@ -199,7 +199,7 @@ export default function ContactPage() {
                   <div className="space-y-2">
                     <Label htmlFor="subject">Subject</Label>
                     <Select name="subject" defaultValue="general">
-                      <SelectTrigger id="subject">
+                      <SelectTrigger id="subject" className="w-full">
                         <SelectValue placeholder="Select a subject" />
                       </SelectTrigger>
                       <SelectContent>

@@ -76,6 +76,7 @@ export interface DbGroupSession {
 
 // Group session bookings table
 export interface DbGroupSessionBooking {
+  booking_reference: string;
   status: 'pending_payment' | 'confirmed' | 'expired' | 'cancelled';
   payment_status: 'unpaid' | 'pending' | 'paid' | 'failed';
   amount: string | null;

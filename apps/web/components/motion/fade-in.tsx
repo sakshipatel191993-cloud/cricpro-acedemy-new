@@ -14,9 +14,9 @@ interface FadeInProps {
 export function FadeIn({
   children,
   delay = 0,
-  duration = 0.6,
+  duration = 0.55,
   className,
-  fromY = 24,
+  fromY = 18,
   fromX = 0,
 }: FadeInProps) {
   const reducedMotion = useReducedMotion();
@@ -25,8 +25,8 @@ export function FadeIn({
     <motion.div
       initial={reducedMotion ? false : { opacity: 0, y: fromY, x: fromX }}
       whileInView={reducedMotion ? undefined : { opacity: 1, y: 0, x: 0 }}
-      viewport={{ once: true, amount: 0.18, margin: "0px 0px -8%" }}
-      transition={{ duration: reducedMotion ? 0 : Math.max(duration, 0.72), delay, ease: [0.22, 1, 0.36, 1] }}
+      viewport={{ once: true, amount: 0.12, margin: "0px 0px -5%" }}
+      transition={{ duration: reducedMotion ? 0 : duration, delay: reducedMotion ? 0 : delay, ease: [0.22, 1, 0.36, 1] }}
       className={className}
     >
       {children}

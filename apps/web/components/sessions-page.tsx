@@ -122,7 +122,7 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
           </Link>
           <div className="max-w-3xl">
             <Badge className="mb-4">{masterclass ? 'Masterclass' : 'Group Sessions'}</Badge>
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
+            <h1 className="mb-4 text-4xl font-semibold leading-tight tracking-tight md:text-5xl lg:text-6xl">
               {masterclass ? 'Learn from the Experts' : 'Level Up Together'}
             </h1>
             <p className="text-lg text-muted-foreground">
@@ -271,7 +271,7 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="public-form space-y-6">
                   <div className="space-y-2">
                     <Label htmlFor="session_id">Select Session</Label>
                     <Select name="session_id" required value={sessionId} disabled={submitting} onValueChange={(value) => { setSessionId(value ?? ""); setPlayerAge(''); }}>
@@ -305,7 +305,7 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
                           ))}
                         </SelectContent>
                       </Select>
-                      <p className="text-sm text-muted-foreground">{selected ? (allowedAges.length ? `Eligible ages: ${selected.age_group}` : 'Age group unavailable. Please contact us before booking.') : 'Select a session to see eligible ages.'}</p>
+                      <p className="text-sm text-muted-foreground">{selected ? (allowedAges.length ? `Eligible ages: ${allowedAges[0]}–${allowedAges[allowedAges.length - 1]} years` : 'Age group unavailable. Please contact us before booking.') : 'Select a session to see eligible ages.'}</p>
                     </div>
                   </div>
 

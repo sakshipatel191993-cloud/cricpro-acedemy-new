@@ -2,11 +2,11 @@ import { Metadata } from "next";
 import { HeroSection } from "@/components/sections/hero-section";
 import { LaneHireSection } from "@/components/sections/lane-hire-section";
 import { TrainingCardsSection } from "@/components/sections/training-cards-section";
+import { MasterclassHighlightSection } from "@/components/sections/masterclass-highlight-section";
 import { CoachingSection } from "@/components/sections/coaching-section";
 import { BirthdaySection } from "@/components/sections/birthday-section";
 import { WhyUsSection } from "@/components/sections/why-us-section";
 import { StatsSection } from "@/components/sections/stats-section";
-import { TestimonialsSection } from "@/components/sections/testimonials-section";
 import { CtaSection } from "@/components/sections/cta-section";
 
 export const metadata: Metadata = {
@@ -20,12 +20,12 @@ export default function Home() {
     <main className="min-h-screen">
       <HeroSection />
       <LaneHireSection />
+      <MasterclassHighlightSection />
       <TrainingCardsSection />
       <CoachingSection />
       <BirthdaySection />
       <WhyUsSection />
       <StatsSection />
-      <TestimonialsSection />
       <CtaSection />
     </main>
   );

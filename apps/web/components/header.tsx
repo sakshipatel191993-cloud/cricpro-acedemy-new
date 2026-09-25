@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { motion, AnimatePresence } from "framer-motion"
+import Image from "next/image"
+import { usePathname, useRouter } from "next/navigation"
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { Button } from "@workspace/ui/components/button"
 import {
   Sheet,
@@ -40,6 +41,8 @@ export function Header() {
   const [scrolled, setScrolled] = useState(false)
   const { user, loading, signOut } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
+  const reducedMotion = useReducedMotion()
 
   const firstName =
     user?.user_metadata?.full_name?.split(" ")[0] ??
@@ -68,9 +71,9 @@ export function Header() {
 
   return (
     <motion.header
-      initial={{ y: -64, opacity: 0 }}
+      initial={reducedMotion ? false : { y: -24, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: reducedMotion ? 0 : 0.42, ease: [0.16, 1, 0.3, 1] }}
       className={`sticky top-0 z-50 w-full border-b backdrop-blur-md transition-colors duration-300 ${
         scrolled
           ? "border-primary/20 bg-background/90"
@@ -81,13 +84,13 @@ export function Header() {
         <div className="flex h-20 items-center justify-between gap-4 lg:gap-6">
           {/* Logo */}
           <Link href="/" className="group flex shrink-0 items-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/crircpro-coe-logo.png"
+            <Image
+              src="/crircpro-coe-logo-header.png"
               alt="Cricpro Centre of Excellence"
-              className="h-16 w-auto object-contain transition-transform duration-300 group-hover:scale-[1.03]"
-              height={100}
-              width={100}
+              className="h-14 w-14 object-contain transition-transform duration-300 group-hover:scale-[1.03] sm:h-16 sm:w-16"
+              height={64}
+              width={64}
+              priority
             />
           </Link>
 
@@ -97,10 +100,11 @@ export function Header() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="group relative shrink-0 whitespace-nowrap py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+                aria-current={pathname === link.href ? "page" : undefined}
+                className={`group relative shrink-0 whitespace-nowrap py-2 text-sm font-medium transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary ${pathname === link.href ? "text-foreground" : "text-muted-foreground"}`}
               >
                 {link.label}
-                <span className="absolute -bottom-0.5 left-0 h-px w-0 bg-primary transition-all duration-300 group-hover:w-full" />
+                <span className={`absolute -bottom-0.5 left-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full ${pathname === link.href ? "w-full" : "w-0"}`} />
               </Link>
             ))}
           </nav>
@@ -143,7 +147,7 @@ export function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.96 }}>
+            <motion.div whileHover={reducedMotion ? undefined : { y: -2 }} whileTap={reducedMotion ? undefined : { scale: 0.98 }}>
               <Button
                 asChild
                 size="sm"
@@ -196,13 +200,12 @@ export function Header() {
                   className="flex items-center gap-2"
                   onClick={() => setIsOpen(false)}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/crircpro-coe-logo.png"
+                  <Image
+                    src="/crircpro-coe-logo-header.png"
                     alt="Cricpro Centre of Excellence"
-                    // style={{ height: "48px", width: "auto" }}
-                    height={120}
-                    width={100}
+                    className="h-14 w-14 object-contain"
+                    height={56}
+                    width={56}
                   />
                   <span className="text-lg font-bold">Cricpro</span>
                 </Link>
@@ -211,7 +214,8 @@ export function Header() {
                     <Link
                       key={link.href}
                       href={link.href}
-                    className="block rounded-md px-3 py-2.5 text-base font-medium transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-2 focus-visible:outline-primary"
+                      aria-current={pathname === link.href ? "page" : undefined}
+                      className={`block rounded-md px-3 py-2.5 text-base font-medium transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-2 focus-visible:outline-primary ${pathname === link.href ? "bg-primary/10 text-primary" : ""}`}
                       onClick={() => setIsOpen(false)}
                     >
                       {link.label}

@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
       checkout_description: `${session.title} – ${session.schedule}`,
       checkout_service_type: session.session_kind === 'masterclass' ? 'masterclass' : 'group_session',
     };
-    const { error: bookingError } = await supabaseAdmin.from('group_session_bookings').insert(reservation);
+    const { data: createdBooking, error: bookingError } = await supabaseAdmin.from('group_session_bookings').insert(reservation).select('*').single();
     if (bookingError) {
       if (bookingError.code === '23505' || bookingError.code === '23514') {
         // The capacity trigger can reject a racing replay before PostgreSQL
@@ -97,7 +97,8 @@ export async function POST(request: NextRequest) {
       if (bookingError.code === '23514') return NextResponse.json({ success: false, error: 'Session is full or inactive' }, { status: 409 });
       throw bookingError;
     }
-    return await checkoutResponse(request, reservation, identity.fingerprint);
+    if (!createdBooking) throw new Error('Reservation unavailable');
+    return await checkoutResponse(request, createdBooking, identity.fingerprint);
   } catch (error) {
     // A timeout can mean Stripe accepted payment creation. Keep the hold until
     // durable reconciliation proves the provider session is unpaid and terminal.
@@ -113,7 +114,7 @@ async function checkoutResponse(request: Request, booking: any, fingerprint: str
   if (booking.status !== 'pending_payment') return NextResponse.json({ success: false, error: 'This booking has already been processed. Please view your booking or contact us.' }, { status: 409 });
   const access = await provisionBookingAccess(request, 'group', booking.id);
   const checkout = await startPersistedCheckout({
-    bookingId: booking.id, bookingReference: booking.id, bookingKind: 'group_session', serviceType: booking.checkout_service_type,
+    bookingId: booking.id, bookingReference: booking.booking_reference, bookingKind: 'group_session', serviceType: booking.checkout_service_type,
     amount: String(booking.amount), customerEmail: booking.parent_email, customerName: booking.parent_name,
     description: booking.checkout_description, expiresAt: Math.floor(new Date(booking.expires_at).getTime() / 1000),
     appUrl: checkoutAppUrl(request),

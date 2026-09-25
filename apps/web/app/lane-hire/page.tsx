@@ -8,7 +8,7 @@ import { Label } from "@workspace/ui/components/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select";
 import Link from "next/link";
 import { ArrowLeft, Clock, Users, Calendar, CheckCircle, Minus, Plus } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/context/auth";
 import { DatePicker } from "@/components/date-picker";
@@ -16,6 +16,15 @@ import { RateSchedule } from "@/components/rate-schedule";
 import { blockBookingDates, blockBookingMaxEndDate } from "@/lib/block-booking";
 
 interface LaneResource { id: string; name: string; capacity: number }
+
+function subscribeBookingQuery(onChange: () => void) {
+  window.addEventListener('popstate', onChange);
+  return () => window.removeEventListener('popstate', onChange);
+}
+
+function bookingModeFromUrl(): 'single' | 'block' {
+  return new URLSearchParams(window.location.search).get('booking') === 'block' ? 'block' : 'single';
+}
 
 async function readApiJson(response: Response, fallback: string) {
   const text = await response.text();
@@ -30,6 +39,8 @@ export default function LaneHirePage() {
   const router = useRouter();
   const { user } = useAuth();
   const [lanes, setLanes] = useState<LaneResource[]>([]);
+  const [lanesLoading, setLanesLoading] = useState(true);
+  const [lanesError, setLanesError] = useState('');
   const [selectedLaneId, setSelectedLaneId] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [slots, setSlots] = useState<Array<{time: string; availableLanes: number; price: string; priceLabel?: string; standardPrice?: string}>>([]);
@@ -38,7 +49,9 @@ export default function LaneHirePage() {
   const [standardTotalPrice, setStandardTotalPrice] = useState(0);
   const [loading, setLoading] = useState(false);
   const [slotsError, setSlotsError] = useState('');
-  const [bookingMode, setBookingMode] = useState<'single' | 'block'>('single');
+  const requestedBookingMode = useSyncExternalStore(subscribeBookingQuery, bookingModeFromUrl, () => 'single');
+  const [bookingModeOverride, setBookingModeOverride] = useState<'single' | 'block' | null>(null);
+  const bookingMode = bookingModeOverride ?? requestedBookingMode;
   const [blockEndDate, setBlockEndDate] = useState('');
   const [blockWeekdays, setBlockWeekdays] = useState<number[]>([]);
   const slotsRequestId = useRef(0);
@@ -71,13 +84,16 @@ export default function LaneHirePage() {
       try {
         const res = await fetch('/api/resources?type=lane');
         const data = await readApiJson(res, 'Lanes could not be loaded. Please refresh the page.');
-        if (data.success) {
-          const active: LaneResource[] = data.resources.filter((r: any) => r.active);
-          setLanes(active);
-          if (active.length > 0) setSelectedLaneId(active[0]!.id);
-        }
+        if (!res.ok || !data.success) throw new Error('Lanes could not be loaded. Please refresh the page.');
+        const active: LaneResource[] = data.resources.filter((r: any) => r.active);
+        setLanes(active);
+        if (active.length > 0) setSelectedLaneId(active[0]!.id);
+        else setLanesError('No lanes are currently available for online booking.');
       } catch (e) {
         console.error('Failed to fetch lanes:', e);
+        setLanesError(e instanceof Error ? e.message : 'Lanes could not be loaded. Please refresh the page.');
+      } finally {
+        setLanesLoading(false);
       }
     }
     fetchLanes();
@@ -155,7 +171,7 @@ export default function LaneHirePage() {
 
   function switchBookingMode(mode: 'single' | 'block') {
     if (mode === bookingMode) return;
-    setBookingMode(mode);
+    setBookingModeOverride(mode);
     resetBookingData();
   }
 
@@ -264,7 +280,7 @@ export default function LaneHirePage() {
           </Link>
           <div className="max-w-3xl">
             <Badge className="mb-4">Lane Hire</Badge>
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
+            <h1 className="mb-4 text-4xl font-semibold leading-tight tracking-tight md:text-5xl lg:text-6xl">
               Practice at Your Own Pace
             </h1>
             <p className="text-lg text-muted-foreground">
@@ -373,7 +389,7 @@ export default function LaneHirePage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form className="space-y-6" onSubmit={handleSubmit}>
+                <form className="public-form space-y-6" onSubmit={handleSubmit}>
                   <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-4">
                     <div className="flex flex-wrap gap-2" role="group" aria-label="Booking type">
                       <Button type="button" variant={bookingMode === 'single' ? 'default' : 'outline'} size="sm" onClick={() => switchBookingMode('single')}>Single booking</Button>
@@ -408,7 +424,11 @@ export default function LaneHirePage() {
 
                   <div className="space-y-2">
                     <Label>Available Slots{bookingMode === 'block' && availabilityDate ? ` · first session ${availabilityDate}` : ''}</Label>
-                    {loading ? (
+                    {lanesError ? (
+                      <p role="alert" className="text-destructive text-sm">{lanesError}</p>
+                    ) : lanesLoading ? (
+                      <p className="text-muted-foreground text-sm">Loading lanes…</p>
+                    ) : loading ? (
                       <div className="flex items-center justify-center h-24">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                       </div>

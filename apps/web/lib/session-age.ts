@@ -1,4 +1,5 @@
-export const AGE_GROUP_HELP = 'Use an age range such as 11-15 years, a minimum such as 13+, or a single age.';
+export const MAX_SESSION_AGE = 40;
+export const AGE_GROUP_HELP = 'Use an age range up to 40 such as 11-15 years, a minimum such as 13+ (through age 40), or a single age.';
 
 // Interpret the existing admin text field strictly and consistently.
 export function sessionAgeRange(value: unknown): { min: number; max: number } | null {
@@ -9,8 +10,8 @@ export function sessionAgeRange(value: unknown): { min: number; max: number } | 
   const single = text.match(/^(\d{1,3})$/);
   if (!range && !minimum && !single) return null;
   const min = Number((range ?? minimum ?? single)![1]);
-  const max = range ? Number(range[2]) : minimum ? 120 : min;
-  return min >= 1 && max <= 120 && min <= max ? { min, max } : null;
+  const max = range ? Number(range[2]) : minimum ? MAX_SESSION_AGE : min;
+  return min >= 1 && max <= MAX_SESSION_AGE && min <= max ? { min, max } : null;
 }
 
 export function sessionAgeOptions(group: unknown): number[] {

@@ -14,7 +14,7 @@ export function RateSchedule({ offPeakPrice, peakPrice }: RateScheduleProps) {
   const savings = peakPrice - offPeakPrice;
 
   return (
-    <div className="rounded-2xl border border-border/70 bg-card/50 px-6 py-7 sm:px-8">
+    <div className="rounded-xl border border-border/70 bg-card/50 px-6 py-7 sm:px-8">
       <div className="flex items-center gap-2">
         <Clock className="h-4 w-4 text-muted-foreground" />
         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">

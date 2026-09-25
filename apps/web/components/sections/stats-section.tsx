@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, useReducedMotion } from "framer-motion";
 import { Badge } from "@workspace/ui/components/badge";
 import { FadeIn } from "@/components/motion/fade-in";
 
@@ -16,9 +16,10 @@ function CountUp({ target, suffix, duration = 1.5 }: { target: number; suffix: s
   const [count, setCount] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
-    if (!isInView) return;
+    if (!isInView || reducedMotion) return;
     let start = 0;
     const step = target / (duration * 60);
     const timer = setInterval(() => {
@@ -31,16 +32,17 @@ function CountUp({ target, suffix, duration = 1.5 }: { target: number; suffix: s
       }
     }, 1000 / 60);
     return () => clearInterval(timer);
-  }, [isInView, target, duration]);
+  }, [isInView, target, duration, reducedMotion]);
 
   return (
     <span ref={ref}>
-      {count}{suffix}
+      {reducedMotion ? target : count}{suffix}
     </span>
   );
 }
 
 export function StatsSection() {
+  const reducedMotion = useReducedMotion();
   return (
     <section className="py-16 md:py-24">
       <div className="container mx-auto px-4">
@@ -55,11 +57,11 @@ export function StatsSection() {
           {stats.map((stat, index) => (
             <motion.div
               key={index}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={reducedMotion ? false : { opacity: 0, y: 18 }}
+              whileInView={reducedMotion ? undefined : { opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-80px" }}
               transition={{ duration: 0.6, delay: index * 0.1, ease: [0.16, 1, 0.3, 1] }}
-              whileHover={{ scale: 1.04 }}
+              whileHover={reducedMotion ? undefined : { y: -3 }}
               className="p-6 bg-card/80 rounded-xl border border-border/60 hover:border-primary/40 text-center transition-colors cursor-default"
             >
               <p className="text-3xl md:text-4xl font-bold text-primary mb-1">

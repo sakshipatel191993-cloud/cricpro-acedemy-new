@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       if (kind === 'group' && !/^[A-Za-z0-9_-]{1,80}$/.test(reference)) return generic();
       const result = kind === 'resource'
         ? await supabaseAdmin.from('bookings').select('id,customer_email').eq('booking_reference',reference).maybeSingle()
-        : await supabaseAdmin.from('group_session_bookings').select('id,parent_email').eq('id',reference).maybeSingle();
+        : await supabaseAdmin.from('group_session_bookings').select('id,parent_email').or(`booking_reference.eq.${reference},id.eq.${reference}`).maybeSingle();
       if (result.error) throw new Error('Access lookup unavailable');
       const booking = result.data as { id: string; customer_email?: string; parent_email?: string } | null;
       const recipient = booking?.customer_email ?? booking?.parent_email;

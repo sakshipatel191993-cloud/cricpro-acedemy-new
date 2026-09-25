@@ -4,6 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "predev": "node ../../scripts/link-local-env.mjs",
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",

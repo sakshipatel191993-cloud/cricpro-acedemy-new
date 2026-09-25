@@ -6,7 +6,7 @@ import { AuthProvider } from "@/lib/context/auth"
 import { SiteChrome } from "@/components/site-chrome"
 import { cn } from "@workspace/ui/lib/utils";
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" })
+const geist = Geist({ subsets: ["latin"], variable: "--font-geist" })
 
 const fontMono = JetBrains_Mono({
   subsets: ["latin"],

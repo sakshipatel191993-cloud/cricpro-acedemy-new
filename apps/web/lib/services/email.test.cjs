@@ -26,8 +26,8 @@ test('transactional templates are branded, escaped, and have correct reply routi
   await exports.sendAdminInquiryNotification(inquiry)
   const booking = { booking_reference: 'TEST-123', service_type: 'lane_hire', booking_date: '2026-09-20', start_at: '2026-09-20T10:00:00Z', amount: '22', customer_name: inquiry.name, customer_email: inquiry.email }
   await exports.sendAdminBookingNotification(booking)
-  await exports.sendGroupSessionConfirmation({ player_name: '<script>Player</script>', parent_name: inquiry.name, parent_email: inquiry.email }, { title: 'Junior <Coaching>', price: '15' })
-  await exports.sendGroupSessionConfirmation({ player_name: 'Player', parent_name: 'Parent', parent_email: inquiry.email }, { title: 'Masterclass', price: '20', session_kind: 'masterclass' })
+  await exports.sendGroupSessionConfirmation({ id: 'group-1', booking_reference: 'CCOE-ABC234', player_name: '<script>Player</script>', parent_name: inquiry.name, parent_email: inquiry.email }, { title: 'Junior <Coaching>', price: '15' })
+  await exports.sendGroupSessionConfirmation({ id: 'group-2', booking_reference: 'CCOE-DEF567', player_name: 'Player', parent_name: 'Parent', parent_email: inquiry.email }, { title: 'Masterclass', price: '20', session_kind: 'masterclass' })
   await exports.sendBookingConfirmation(booking)
   assert.equal(messages.length, 6)
   for (const message of messages) {
@@ -44,14 +44,19 @@ test('transactional templates are branded, escaped, and have correct reply routi
   assert.match(messages[1].html, /Not provided/)
   assert.match(messages[2].html, /£22.00/)
   assert.match(messages[3].html, /Junior &lt;Coaching&gt;/)
-  assert.match(messages[4].html, /Masterclass Booking Confirmed!/)
+  assert.match(messages[4].html, /Booking Confirmed!/)
+  assert.match(messages[4].html, /<td[^>]*>Service<\/td>\s*<td[^>]*>Masterclass<\/td>/)
   assert.match(messages[5].html, /Booking Confirmed!/)
   for (const index of [3, 4, 5]) {
+    assert.match(messages[index].html, /background-color:#16a34a/)
     assert.match(messages[index].html, /href="https:\/\/maps.google.com"/)
     assert.match(messages[index].html, /Open in Google Maps/)
     assert.match(messages[index].html, /href="https:\/\/maps.apple.com"/)
     assert.match(messages[index].html, /Marsh Hill, B23 7EY/)
   }
+  assert.match(messages[3].html, /CCOE-ABC234/)
+  assert.match(messages[3].subject, /CCOE-ABC234/)
+  assert.match(messages[3].attachments[0].filename, /CCOE-ABC234/)
   assert.equal(messages[5].attachments.length, 1, 'Unpaid bookings must not receive a payment receipt')
   assert.throws(() => documentExports.verifiedPayment({ payment_status: 'unpaid' }), /verified paid/)
   const payment = documentExports.verifiedPayment({ payment_status: 'paid', currency: 'gbp', amount_total: 2200, payment_intent: 'pi_test_preview', livemode: false })
@@ -66,7 +71,7 @@ test('transactional templates are branded, escaped, and have correct reply routi
       fs.writeFileSync(path.join(process.env.PDF_PREVIEW_DIR, attachment.filename), attachment.content)
     }
   }
-  await exports.sendGroupSessionConfirmation({ id: 'GROUP-TEST', player_name: 'Player', parent_name: 'Parent', parent_email: inquiry.email }, { title: 'Junior session', price: '22', schedule: 'Saturday, 10:00 - 11:00' }, payment)
+  await exports.sendGroupSessionConfirmation({ id: 'GROUP-TEST', booking_reference: 'CCOE-GHK789', player_name: 'Player', parent_name: 'Parent', parent_email: inquiry.email }, { title: 'Junior session', price: '22', schedule: 'Saturday, 10:00 - 11:00' }, payment)
   assert.equal(messages[7].attachments.length, 2)
   assert.match(messages[7].html, /Saturday, 10:00 - 11:00/)
   assert.match(messages[7].html, /Open in Google Maps/)

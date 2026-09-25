@@ -57,7 +57,7 @@ export default async function CoachingPage() {
           </Link>
           <div className="max-w-3xl">
             <Badge className="mb-4">One-to-One Coaching</Badge>
-            <h1 className="mb-4 text-3xl font-bold md:text-4xl lg:text-5xl">
+            <h1 className="mb-4 text-4xl font-semibold leading-tight tracking-tight md:text-5xl lg:text-6xl">
               Elite Development
             </h1>
             <p className="text-lg text-muted-foreground">

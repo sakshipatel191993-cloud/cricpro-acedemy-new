@@ -3,7 +3,8 @@
 import { Button } from "@workspace/ui/components/button";
 import { Badge } from "@workspace/ui/components/badge";
 import Link from "next/link";
-import { Cake, Trophy, PartyPopper, Check } from "lucide-react";
+import { Check } from "lucide-react";
+import Image from "next/image";
 import { FadeIn } from "@/components/motion/fade-in";
 import { services } from "@/lib/data";
 
@@ -35,15 +36,18 @@ export function BirthdaySection() {
             </FadeIn>
 
             <FadeIn fromX={24} fromY={0} delay={0.15} className="order-1 md:order-2">
-              <div className="p-8 bg-card/80 rounded-xl border border-primary/20 text-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
-                <p className="text-muted-foreground mb-2">Custom quotes available</p>
-                <p className="text-3xl font-bold">Birthday Packages</p>
-                <p className="text-sm text-muted-foreground mt-2">Tailored to your needs</p>
-                <div className="mt-6 flex justify-center gap-6">
-                  <Cake className="h-8 w-8 text-primary" />
-                  <Trophy className="h-8 w-8 text-primary" />
-                  <PartyPopper className="h-8 w-8 text-primary" />
+              <div className="relative min-h-[300px] overflow-hidden rounded-xl border border-primary/20 sm:min-h-[360px]">
+                <Image
+                  src="/cricket-birthday-party.webp"
+                  alt="Children enjoying a supervised indoor cricket activity"
+                  fill
+                  sizes="(min-width: 768px) 45vw, 100vw"
+                  className="object-cover object-[55%_center]"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#090b0f]/85 via-transparent to-transparent" aria-hidden="true" />
+                <div className="absolute inset-x-0 bottom-0 p-6 text-white sm:p-8">
+                  <p className="text-xs font-semibold uppercase tracking-[0.15em] text-white/75">Custom quotes available</p>
+                  <p className="mt-2 text-2xl font-semibold tracking-tight">Cricket parties, their way.</p>
                 </div>
               </div>
             </FadeIn>

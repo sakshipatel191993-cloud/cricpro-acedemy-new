@@ -13,11 +13,11 @@ export const services = {
   },
   groupSessions: {
     title: "Group Sessions",
-    description: "Structured coaching for young cricketers aged 6-18. Build skills, make friends, and level up your game.",
+    description: "Structured coaching for different ages and abilities. Build skills, make friends, and enjoy every session.",
     price: {
       perSession: 12.50,
     },
-    ageGroup: "6-18 years",
+    ageGroup: "Ages 6–40",
     capacity: "12 players per session",
     schedule: {
       friday: "6 PM – 8 PM",

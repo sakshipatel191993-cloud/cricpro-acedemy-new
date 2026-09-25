@@ -113,9 +113,9 @@ test('payload is gated by paid status, unchanged phone and recorded consent', ()
   const payload = jobsApi.whatsappJobPayload('bookings', row, phone)
   assert.equal(payload.event, 'booking_confirmed')
   assert.equal(payload.values[3], '1 Oct 2026, 13:00') // UK summer time, not server timezone
-  const group = jobsApi.whatsappJobPayload('group_session_bookings', { ...row, parent_phone: row.customer_phone,
+  const group = jobsApi.whatsappJobPayload('group_session_bookings', { ...row, booking_reference: 'CCOE-A2B3C4', parent_phone: row.customer_phone,
     parent_name: 'Parent', session: { title: 'Group Cricket', schedule: 'Saturday at 10am' } }, phone)
-  assert.deepEqual(group.values, ['Parent', 'booking-1', 'Group Cricket', 'Saturday at 10am'])
+  assert.deepEqual(group.values, ['Parent', 'CCOE-A2B3C4', 'Group Cricket', 'Saturday at 10am'])
 })
 
 test('webhook scopes account/phone, records statuses and only recognizes exact opt-out commands', () => {

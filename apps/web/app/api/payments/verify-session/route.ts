@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success:true, booking:null },{ headers:{ 'Cache-Control':'private, no-store' } });
       }
       return NextResponse.json({ success: true, booking: {
-        booking_reference: booking.id,
+        booking_reference: booking.booking_reference,
         service_type: booking.session.session_kind === 'masterclass' ? 'masterclass' : 'group_session',
         resource_name: booking.session.title,
         schedule: booking.session.schedule,

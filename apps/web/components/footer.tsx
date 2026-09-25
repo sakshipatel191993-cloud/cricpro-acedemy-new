@@ -29,7 +29,7 @@ export function Footer() {
           <div>
             <Link href="/" aria-label="Cricpro Centre of Excellence home" className="inline-flex items-center gap-4 rounded-lg focus-visible:outline-2 focus-visible:outline-primary">
               <span className="relative block h-28 w-28 shrink-0 overflow-hidden">
-                <Image src="/crircpro-coe-logo.png" alt="" fill sizes="112px" className="object-cover" />
+                <Image src="/crircpro-coe-logo-header.png" alt="" fill sizes="112px" className="object-contain" />
               </span>
               <span>
                 <span className="block text-2xl font-bold tracking-tight">CRIC<span className="text-primary">PRO</span></span>
@@ -62,7 +62,7 @@ export function Footer() {
             </nav>
           </div>
 
-          <section aria-labelledby="footer-visit-heading" className="rounded-2xl border border-border/70 bg-background/60 p-6">
+          <section aria-labelledby="footer-visit-heading" className="rounded-xl border border-border/70 bg-background/60 p-6">
             <h2 id="footer-visit-heading" className="mb-5 text-xs font-semibold uppercase tracking-widest">Plan your visit</h2>
             <div className="flex gap-3">
               <Clock aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-primary" />

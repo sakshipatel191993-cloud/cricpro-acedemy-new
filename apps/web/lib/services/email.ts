@@ -118,20 +118,18 @@ function bookingConfirmationHtml(b: BookingEmailData) {
   const endTime = b.end_at ? formatTime(b.end_at, b.quote_id) : null
   const time =
     endTime && endTime !== startTime ? `${startTime} – ${endTime}` : startTime
-  const firstName = escapeHtml(b.customer_name.split(" ")[0] || b.customer_name)
-
   const rows: Array<[string, string]> = [
-    ["Reference", escapeHtml(b.booking_reference)],
-    ["Service", escapeHtml(service)],
+    ["Reference", b.booking_reference],
+    ["Service", service],
   ]
   if (b.resource_name) {
     rows.push([
       b.service_type === "lane_hire" ? "Lane" : "Facility",
-      escapeHtml(b.resource_name),
+      b.resource_name,
     ])
   }
   if (b.block_schedule) {
-    rows.push(["Sessions", String(b.block_session_count ?? "")], ["Schedule", escapeHtml(b.block_schedule)])
+    rows.push(["Sessions", String(b.block_session_count ?? "")], ["Schedule", b.block_schedule])
   } else {
     rows.push(["Date", date], ["Time", time])
   }
@@ -141,8 +139,13 @@ function bookingConfirmationHtml(b: BookingEmailData) {
       b.player_count === 1 ? "1 player" : `${b.player_count} players`,
     ])
   }
-  rows.push(...couponRows(b.coupon_snapshot).map(([key, value]): [string, string] => [key, escapeHtml(value)]), ["Amount", `£${Number(b.amount).toFixed(2)}`])
+  rows.push(...couponRows(b.coupon_snapshot), ["Amount", `£${Number(b.amount).toFixed(2)}`])
 
+  return customerBookingConfirmationHtml(b.customer_name, rows, "Please arrive 5 minutes before your session starts.")
+}
+
+function customerBookingConfirmationHtml(customerName: string, rows: Array<[string, string]>, arrivalNote: string) {
+  const firstName = escapeHtml(customerName.split(" ")[0] || customerName)
   const detailRows = rows
     .map(([label, value], index) => {
       const isLast = index === rows.length - 1
@@ -150,8 +153,8 @@ function bookingConfirmationHtml(b: BookingEmailData) {
       const isAmount = label === "Amount"
       return `
       <tr>
-        <td style="padding:13px 16px;${divider}color:#5b6472;font-size:14px;width:40%;">${label}</td>
-        <td style="padding:13px 16px;${divider}color:${isAmount ? "#16a34a" : "#1d2544"};font-size:14px;font-weight:${isAmount ? "700" : "600"};text-align:right;">${value}</td>
+        <td style="padding:13px 16px;${divider}color:#5b6472;font-size:14px;width:40%;">${escapeHtml(label)}</td>
+        <td style="padding:13px 16px;${divider}color:${isAmount ? "#16a34a" : "#1d2544"};font-size:14px;font-weight:${isAmount ? "700" : "600"};text-align:right;overflow-wrap:anywhere;">${escapeHtml(value)}</td>
       </tr>`
     })
     .join("")
@@ -191,7 +194,7 @@ function bookingConfirmationHtml(b: BookingEmailData) {
                       <a href="${LOCATION.appleMapsUrl}" style="color:#16a34a;font-size:13px;font-weight:600;text-decoration:none;">Open in Apple Maps</a>
                     </p>
                   </div>
-                  <p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#5b6472;">Please arrive 5 minutes before your session starts.</p>
+                  <p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#5b6472;">${escapeHtml(arrivalNote)}</p>
                 </td>
               </tr>
               <tr>
@@ -225,18 +228,6 @@ function brandedEmail(title: string, intro: string, rows: Array<[string, string]
   </table></td></tr></table></body></html>`
 }
 
-// Reuse the original booking email's venue and map destinations for every
-// customer confirmation, including group sessions and masterclasses.
-function locationDirectionsHtml() {
-  return `<div style="margin:24px 0 0;padding:20px;background-color:#f4f5f1;border-radius:8px;">
-    <h2 style="margin:0 0 8px;font-size:18px;color:#1d2544;">Where to find us</h2>
-    <p style="margin:0;font-size:16px;color:#1d2544;font-weight:700;">${escapeHtml(LOCATION.name)}</p>
-    <p style="margin:4px 0 12px;font-size:16px;color:#1d2544;">${escapeHtml(LOCATION.address)}</p>
-    <a href="${escapeHtml(LOCATION.googleMapsUrl)}" style="display:inline-block;padding:12px 16px;margin:4px 8px 4px 0;background-color:#15803d;border-radius:6px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;">Open in Google Maps</a>
-    <a href="${escapeHtml(LOCATION.appleMapsUrl)}" style="display:inline-block;padding:12px 0;color:#166534;font-size:15px;font-weight:600;text-decoration:underline;">Open in Apple Maps</a>
-  </div>`
-}
-
 function inquiryConfirmationHtml(name: string, type: string) {
   const subject =
     type === "birthday_party"
@@ -249,13 +240,23 @@ function inquiryConfirmationHtml(name: string, type: string) {
 
 function groupSessionConfirmationHtml(
   booking: {
+    booking_reference: string
     player_name: string
     parent_name: string
     coupon_snapshot?: CouponSnapshot | null
   },
   session: { title: string; price: string; session_kind?: string; schedule?: string }
 ) {
-  return brandedEmail(`${session.session_kind === 'masterclass' ? 'Masterclass' : 'Group Session'} Booking Confirmed!`, `Hi ${booking.parent_name}, your player's registration is confirmed.`, [["Player", booking.player_name], ["Session", session.title], ...(session.schedule ? [["Schedule", session.schedule] as [string, string]] : []), ...couponRows(booking.coupon_snapshot), ["Session fee", `£${Number(session.price).toFixed(2)}`]], locationDirectionsHtml() + '<p style="margin:24px 0 0;">Please arrive 10 minutes before the session starts. Full cricket kit is recommended.</p>')
+  const rows: Array<[string, string]> = [
+    ["Reference", booking.booking_reference],
+    ["Service", session.session_kind === 'masterclass' ? 'Masterclass' : 'Group Session'],
+    ["Player", booking.player_name],
+    ["Session", session.title],
+    ...(session.schedule ? [["Schedule", session.schedule] as [string, string]] : []),
+    ...couponRows(booking.coupon_snapshot),
+    ["Amount", `£${Number(session.price).toFixed(2)}`],
+  ]
+  return customerBookingConfirmationHtml(booking.parent_name, rows, "Please arrive 10 minutes before the session starts. Full cricket kit is recommended.")
 }
 
 // ─── Exported functions ───────────────────────────────────────────────────────
@@ -369,18 +370,18 @@ export async function sendAdminInquiryNotification(inquiry: {
 }
 
 export async function sendGroupSessionConfirmation(
-  booking: { id?: string; player_name: string; parent_name: string; parent_email: string; coupon_snapshot?: CouponSnapshot | null },
+  booking: { id: string; booking_reference: string; player_name: string; parent_name: string; parent_email: string; coupon_snapshot?: CouponSnapshot | null },
   session: { title: string; price: string; session_kind?: string; schedule?: string },
   payment?: VerifiedPayment,
   outboxId?: string
 ) {
-  const attachments = await bookingAttachments({ reference: booking.id || "session-booking", customer: booking.parent_name,
+  const attachments = await bookingAttachments({ reference: booking.booking_reference, customer: booking.parent_name,
     email: booking.parent_email, service: session.title, payment,
     details: [...couponRows(booking.coupon_snapshot), ["Player", booking.player_name], ...(session.schedule ? [["Schedule", session.schedule] as [string, string]] : [])],
   })
   return send(
     booking.parent_email,
-    `${session.session_kind === 'masterclass' ? 'Masterclass' : 'Group Session'} Booking Confirmed | Cricpro Centre of Excellence`,
-    withBookingAccess(groupSessionConfirmationHtml(booking, session),booking.id ?? ''), ADMIN_EMAIL, attachments, outboxId
+    `Booking Confirmed – ${booking.booking_reference} | Cricpro Centre of Excellence`,
+    withBookingAccess(groupSessionConfirmationHtml(booking, session),booking.booking_reference), ADMIN_EMAIL, attachments, outboxId
   )
 }

@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     if (!scope) return reply({ error: 'Booking unavailable' },404);
     const { data: row,error } = kind === 'resource'
       ? await supabaseAdmin.from('bookings').select('id,booking_reference,customer_name,customer_email,service_type,start_at,end_at,status,payment_status,amount,stripe_session_id,coupon_snapshot,block_booking_id').eq('id',id).single()
-      : await supabaseAdmin.from('group_session_bookings').select('id,parent_name,parent_email,status,payment_status,amount,stripe_session_id,coupon_snapshot,session:group_sessions(title,schedule,session_kind)').eq('id',id).single();
+      : await supabaseAdmin.from('group_session_bookings').select('id,booking_reference,parent_name,parent_email,status,payment_status,amount,stripe_session_id,coupon_snapshot,session:group_sessions(title,schedule,session_kind)').eq('id',id).single();
     if (error || !row) throw new Error('Unavailable');
     // Explicit DTO: no medical notes, other players, internal notes or secrets.
     const booking = row as Record<string, any>;

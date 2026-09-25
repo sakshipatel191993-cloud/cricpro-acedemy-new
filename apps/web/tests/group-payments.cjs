@@ -15,8 +15,8 @@ function load(file, dependencies) {
 (async()=>{
  let checkoutCalls=0, emails=0, reservationCalls=0, checkoutAmount;
  const session={id:'class-1',title:'Masterclass',price:40,age_group:'11-15 years',session_kind:'masterclass',schedule:'Sunday 1–3 pm',session_date:'2030-01-01',start_time:'15:00:00',end_time:'17:00:00',current_players:0,max_players:12};
- const query={select(){return this},eq(){return this},insert(values){reservationCalls++;assert.equal(values.status,'pending_payment');assert.equal(values.payment_status,'pending');assert.equal(values.amount,'40.00');return this},update(){return this},maybeSingle:async()=>({data:null}),single:async()=>({data:session}),then(resolve){return Promise.resolve({data:[]}).then(resolve)}};
- const db={from:()=>query};
+ let insertedBooking;
+ const db={from:table=>({select(){return this},eq(){return this},insert(values){reservationCalls++;assert.equal(values.status,'pending_payment');assert.equal(values.payment_status,'pending');assert.equal(values.amount,'40.00');insertedBooking={...values,booking_reference:'CCOE-ABC234'};return this},update(){return this},maybeSingle:async()=>({data:null}),single:async()=>({data:table==='group_sessions'?session:insertedBooking}),then(resolve){return Promise.resolve({data:[]}).then(resolve)}})};
  const route=load('apps/web/app/api/group-session-bookings/route.ts',{
   '@/lib/services/whatsapp': { whatsappConsentFields:()=>({}) },
   '@/lib/services/coupons': { couponsEnabled:()=>false, couponRequest:async()=>({}) },
@@ -30,7 +30,7 @@ function load(file, dependencies) {
   '@/lib/services/email':{sendGroupSessionConfirmation:async()=>{emails++}},
   '@/lib/services/stripe':{paymentsEnabled:true,createCheckoutSession:async(params)=>{checkoutCalls++;checkoutAmount=params.amount;return {sessionId:'cs_test',url:'https://checkout.stripe.com/test'}},getStripe:()=>({checkout:{sessions:{expire:async()=>({})}}})},
   '@/lib/services/session-checkout':{reconcileGroupCheckouts:async()=>{}},
-  '@/lib/services/checkout-attempts':{checkoutAppUrl:()=> 'http://127.0.0.1:3001',startPersistedCheckout:async(params)=>{checkoutCalls++;checkoutAmount=params.amount;return {sessionId:'cs_test',url:'https://checkout.stripe.com/test'}}},
+  '@/lib/services/checkout-attempts':{checkoutAppUrl:()=> 'http://127.0.0.1:3001',startPersistedCheckout:async(params)=>{assert.equal(params.bookingReference,'CCOE-ABC234');checkoutCalls++;checkoutAmount=params.amount;return {sessionId:'cs_test',url:'https://checkout.stripe.com/test'}}},
   '@/lib/security/guest-access':{provisionBookingAccess:async()=>null},
   '@/lib/security/rate-limit':{enforceRateLimit:async()=>null},
   '@/lib/security/request-body':{readJsonBody:request=>request.json(),RequestBodyError:class extends Error{}},

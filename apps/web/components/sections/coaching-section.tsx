@@ -3,6 +3,7 @@
 import { Button } from "@workspace/ui/components/button";
 import { Badge } from "@workspace/ui/components/badge";
 import Link from "next/link";
+import Image from "next/image";
 import { FadeIn } from "@/components/motion/fade-in";
 import { services } from "@/lib/data";
 
@@ -22,16 +23,26 @@ export function CoachingSection() {
           </FadeIn>
 
           <FadeIn delay={0.15}>
-            <div className="p-8 bg-card/80 rounded-xl border border-primary/20 relative overflow-hidden">
-              {/* Red glow corner accent */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
-              <p className="text-2xl font-bold text-primary mb-2">{services.coaching.price}</p>
-              <p className="text-muted-foreground mb-6">
-                One-to-one sessions tailored to your goals
-              </p>
-              <Button asChild size="lg">
-                <Link href={services.coaching.path}>Enquire About 1-on-1 Coaching</Link>
-              </Button>
+            <div className="grid overflow-hidden rounded-xl border border-primary/20 bg-card/80 text-left md:grid-cols-[0.9fr_1fr]">
+              <div className="relative min-h-[260px] md:min-h-[320px]">
+                <Image
+                  src="/one-to-one-coaching.webp"
+                  alt="Coach giving individual batting guidance during indoor practice"
+                  fill
+                  sizes="(min-width: 768px) 40vw, 100vw"
+                  className="object-cover object-[64%_center]"
+                />
+              </div>
+              <div className="flex flex-col justify-center p-7 sm:p-9">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-primary">Personal attention</p>
+                <h3 className="text-2xl font-semibold tracking-tight">{services.coaching.price}</h3>
+                <p className="mb-7 mt-3 max-w-sm leading-7 text-muted-foreground">
+                  Work directly with a coach on the skills and decisions that matter to your game.
+                </p>
+                <Button asChild size="lg" className="w-full sm:w-fit">
+                  <Link href={services.coaching.path}>Enquire About Coaching</Link>
+                </Button>
+              </div>
             </div>
           </FadeIn>
         </div>

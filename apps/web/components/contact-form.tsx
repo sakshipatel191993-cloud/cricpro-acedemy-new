@@ -49,10 +49,10 @@ export function ContactForm({ children, enquiryType }: { children: ReactNode; en
   }
 
   return (
-    <form className="space-y-6" onSubmit={submit} aria-busy={pending}>
+    <form className="public-form space-y-6" onSubmit={submit} aria-busy={pending}>
       <fieldset disabled={pending} className="space-y-6 disabled:opacity-60"><WhatsAppOptIn />{children}</fieldset>
-      {pending && <p role="status">Sending your enquiry…</p>}
-      {result && <p role={result.ok ? "status" : "alert"} className={result.ok ? "text-sm" : "text-sm text-destructive"}>{result.message}</p>}
+      {pending && <p role="status" className="text-sm font-medium text-muted-foreground">Sending your enquiry…</p>}
+      {result && <p role={result.ok ? "status" : "alert"} className={result.ok ? "rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-medium leading-relaxed" : "rounded-lg border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm font-medium leading-relaxed text-destructive"}>{result.message}</p>}
     </form>
   )
 }

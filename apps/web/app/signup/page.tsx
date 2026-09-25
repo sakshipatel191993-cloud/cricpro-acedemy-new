@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, Suspense } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
@@ -19,7 +19,6 @@ import { supabase } from "@/lib/services/supabase"
 import { safeReturnPath } from "@/lib/security/return-path"
 
 function SignupForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const from = safeReturnPath(searchParams.get("from"))
 
@@ -58,6 +57,7 @@ function SignupForm() {
       email: formData.email,
       password: formData.password,
       options: {
+        emailRedirectTo: `${window.location.origin}/account`,
         data: {
           full_name: formData.fullName,
           phone: formData.phone,
@@ -71,10 +71,11 @@ function SignupForm() {
       return
     }
 
-    // If session exists immediately (email confirmation disabled), redirect
+    // Signup must not grant immediate access if confirmation is misconfigured.
     if (data.session) {
-      router.push(from)
-      router.refresh()
+      await supabase.auth.signOut({ scope: "local" })
+      setError("Email verification is currently unavailable. Please contact us before signing in.")
+      setLoading(false)
       return
     }
 

@@ -3,7 +3,7 @@
 Local implementation, 22 September 2026. Not a claim of deployed protection.
 
 - No built-in admin password or signing-secret fallback. Missing/invalid configuration disables login and rejects sessions.
-- Configure a unique random `ADMIN_PASSWORD` of at least 12 characters and a separate cryptographically random `ADMIN_SECRET` of at least 32 characters (recommend 32 random bytes encoded as hex). Known starter password and placeholder secrets are rejected. Length checks cannot establish actual randomness.
+- Existing non-empty `ADMIN_PASSWORD` and `ADMIN_SECRET` values remain valid. Do not change passwords, rotate signing secrets, or introduce credential-policy checks that invalidate existing credentials without the owner's explicit permission. For an approved rotation, recommend a unique random password of at least 12 characters and a separate cryptographically random secret of at least 32 characters.
 - Update secrets through the deployment secret manager and redeploy/restart every active instance. Never commit them. Changing `ADMIN_SECRET` invalidates all previous cookies on instances using the new value; changing only the password does not revoke existing cookies. Existing unexpired cookies remain compatible when valid configuration is unchanged.
 - Cookie HMAC verification uses Web Crypto; malformed, duplicate, expired and future-dated session tokens are rejected. Password comparison uses HMAC verification rather than variable-time string equality.
 - Admin API mutations require an exact matching Origin, in middleware and in the login/logout handlers. Direct API clients must supply the same-origin header in addition to their authenticated session; Origin alone is not authentication.

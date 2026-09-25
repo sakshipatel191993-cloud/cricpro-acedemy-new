@@ -2,18 +2,29 @@ import { supabaseAdmin } from '@/lib/services/supabase';
 import { createCheckoutSession, getStripe } from '@/lib/services/stripe';
 import { confirmBooking } from '@/lib/services/confirm-booking';
 import { confirmGroupBooking } from '@/lib/services/confirm-group-booking';
+import { confirmBlockBooking, expireBlockBooking } from '@/lib/services/block-bookings';
 
 type CheckoutParams = Parameters<typeof createCheckoutSession>[0];
-type Attempt = { id: string; resource_booking_id: string | null; group_booking_id: string | null; params: CheckoutParams; stripe_session_id: string | null; created_at: string };
+type Attempt = { id: string; resource_booking_id: string | null; group_booking_id: string | null; block_booking_id?: string | null; params: CheckoutParams; stripe_session_id: string | null; created_at: string };
+
+export function checkoutAppUrl(request: Request) {
+  const requestOrigin = new URL(request.url).origin;
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, '');
+  // Production keeps its configured canonical host. Local checkouts must return
+  // to the host and port that actually created the reservation.
+  return process.env.NODE_ENV === 'production' && configured ? new URL(configured).origin : requestOrigin;
+}
 
 // Called only by server-side booking creation after its reservation is persisted.
 // The attempt survives a lost Stripe response or a failed session-ID write.
 export async function startPersistedCheckout(input: CheckoutParams) {
   const group = input.bookingKind === 'group_session';
-  const id = `${group ? 'group' : 'resource'}:${input.bookingId}`;
-  const params = { ...input, appUrl: process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000' };
+  const block = input.bookingKind === 'block';
+  const id = `${block ? 'block' : group ? 'group' : 'resource'}:${input.bookingId}`;
+  const params = { ...input, appUrl: input.appUrl ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000' };
   const { error } = await supabaseAdmin.from('checkout_attempts').upsert({
-    id, resource_booking_id: group ? null : input.bookingId,
+    id, resource_booking_id: group || block ? null : input.bookingId,
+    ...(block ? { block_booking_id: input.bookingId } : {}),
     group_booking_id: group ? input.bookingId : null, params,
   }, { onConflict: 'id', ignoreDuplicates: true });
   if (error) throw new Error('Unable to persist checkout attempt');
@@ -37,19 +48,25 @@ export async function resumeCheckoutAttempt(attempt: Attempt) {
   const p = attempt.params;
   if (session.metadata?.booking_id !== p.bookingId || session.mode !== 'payment' ||
       session.currency !== 'gbp' || session.amount_total !== Math.round(Number(p.amount) * 100) ||
-      (session.metadata?.booking_kind === 'group_session') !== !!attempt.group_booking_id) {
+      (session.metadata?.booking_kind === 'group_session') !== !!attempt.group_booking_id ||
+      (session.metadata?.booking_kind === 'block') !== !!attempt.block_booking_id) {
     throw new Error('Checkout does not match persisted attempt');
   }
   if (!attempt.stripe_session_id) {
-    const { error } = await supabaseAdmin.rpc('attach_checkout_attempt', {
+    const { error } = await supabaseAdmin.rpc(attempt.block_booking_id ? 'attach_block_checkout' : 'attach_checkout_attempt', {
       p_attempt_id: attempt.id, p_session_id: session.id,
     });
     if (error) throw new Error('Unable to persist checkout session');
   }
   if (session.payment_status === 'paid') {
-    if (attempt.group_booking_id) await confirmGroupBooking(session);
+    if (attempt.block_booking_id) await confirmBlockBooking(p.bookingId, session.id);
+    else if (attempt.group_booking_id) await confirmGroupBooking(session);
     else await confirmBooking(p.bookingId, session.id);
   } else if (session.status === 'expired') {
+    if (attempt.block_booking_id) {
+      await expireBlockBooking(p.bookingId, session.id);
+      return { sessionId: session.id, url: null };
+    }
     const table = attempt.group_booking_id ? 'group_session_bookings' : 'bookings';
     const { error: expireError } = await supabaseAdmin.from(table)
       .update({ status: attempt.group_booking_id ? 'expired' : 'cancelled', payment_status: 'failed' })

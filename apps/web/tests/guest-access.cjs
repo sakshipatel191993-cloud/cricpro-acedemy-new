@@ -14,6 +14,9 @@ function load(path,mocks) { const exports={}; new Function('exports','require',t
  assert.equal(access.guestSameOrigin(request),false);
  assert.equal(access.guestSameOrigin(new Request(request,{headers:{origin:'https://attacker.invalid'}})),false);
  assert.equal(access.guestSameOrigin(new Request(request,{headers:{origin:'https://example.test'}})),true);
+ assert.equal(access.guestSameOrigin(new Request(request,{headers:{origin:'http://127.0.0.1:3001',host:'127.0.0.1:3001','x-forwarded-proto':'http'}})),true,'browser-facing host is accepted when the framework canonicalizes the request URL');
+ assert.equal(access.guestSameOrigin(new Request(request,{headers:{origin:'http://127.0.0.1:3001',host:'localhost:3001','x-forwarded-proto':'http'}})),false,'a different browser-facing host is rejected');
+ assert.equal(access.guestSameOrigin(new Request(request,{headers:{origin:'https://example.test','sec-fetch-site':'cross-site'}})),false);
  assert.equal(await access.accessibleScope(request,'resource','first-booking'),null);
  owner='bob';assert.equal(await access.accessibleScope(request,'resource','first-booking'),null,'other account cannot read');
  owner='alice';assert.equal((await access.accessibleScope(request,'resource','first-booking')).id,'first-scope');

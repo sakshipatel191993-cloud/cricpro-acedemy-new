@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const scope = await accessibleScope(request,kind,id);
     if (!scope) return reply({ error: 'Booking unavailable' },404);
     const { data: row,error } = kind === 'resource'
-      ? await supabaseAdmin.from('bookings').select('id,booking_reference,customer_name,customer_email,service_type,start_at,end_at,status,payment_status,amount,stripe_session_id,coupon_snapshot').eq('id',id).single()
+      ? await supabaseAdmin.from('bookings').select('id,booking_reference,customer_name,customer_email,service_type,start_at,end_at,status,payment_status,amount,stripe_session_id,coupon_snapshot,block_booking_id').eq('id',id).single()
       : await supabaseAdmin.from('group_session_bookings').select('id,parent_name,parent_email,status,payment_status,amount,stripe_session_id,coupon_snapshot,session:group_sessions(title,schedule,session_kind)').eq('id',id).single();
     if (error || !row) throw new Error('Unavailable');
     // Explicit DTO: no medical notes, other players, internal notes or secrets.
@@ -37,7 +37,13 @@ export async function GET(request: NextRequest) {
     if (!document) return reply(details);
     if (!['confirmation','receipt'].includes(document) || !['confirmed','completed'].includes(booking.status)) return reply({ error: 'Document unavailable for this booking status' },409);
     let payment: VerifiedPayment | undefined;
-    if (booking.payment_status === 'paid' && booking.stripe_session_id) {
+    if (booking.payment_status === 'paid' && booking.block_booking_id) {
+      const { data: block, error: blockError } = await supabaseAdmin.from('block_bookings').select('stripe_session_id,amount,payment_status').eq('id', booking.block_booking_id).single();
+      if (blockError || !block?.stripe_session_id || block.payment_status !== 'paid') throw new Error('Block payment unavailable');
+      const paid = await getStripe().checkout.sessions.retrieve(block.stripe_session_id);
+      if (paid.mode !== 'payment' || paid.metadata?.booking_kind !== 'block' || paid.metadata?.booking_id !== booking.block_booking_id || paid.amount_total !== Math.round(Number(block.amount) * 100)) throw new Error('Block payment mismatch');
+      payment = { ...verifiedPayment(paid), amount: Math.round(Number(booking.amount) * 100) };
+    } else if (booking.payment_status === 'paid' && booking.stripe_session_id) {
       const paid = await getStripe().checkout.sessions.retrieve(booking.stripe_session_id);
       if (paid.id !== booking.stripe_session_id || paid.metadata?.booking_id !== id ||
           (kind === 'group') !== (paid.metadata?.booking_kind === 'group_session') ||

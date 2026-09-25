@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/lib/services/supabase"
-import { couponsEnabled } from "@/lib/services/coupons"
+import { couponEmailKey, couponsEnabled } from "@/lib/services/coupons"
 import { quoteCapability } from "@/lib/services/booking-quotes"
 import { isSameOriginRequest } from "@/lib/security/admin-auth"
 import { enforceRateLimit } from "@/lib/security/rate-limit"
@@ -24,6 +24,8 @@ export async function POST(request: Request) {
   try {
     const body = await readJsonBody(request, 4096)
     const code = normalizeCoupon(body.code)
+    if (typeof body.email !== "string" || body.email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email))
+      return json({ error: "Check the booking email before applying a coupon" }, 400)
     let subtotal: number
     if (typeof body.quoteId === "string") {
       const hash = quoteCapability(request, body.quoteId)
@@ -39,12 +41,10 @@ export async function POST(request: Request) {
       if (data.input?.serviceType !== "lane_hire")
         return json({ error: "Coupons are available for lane hire only" }, 400)
       subtotal = Number(data.amount_pence)
-    } else if (typeof body.sessionId === "string") {
-      return json({ error: "Coupons are available for lane hire only" }, 400)
-    } else return json({ error: "Choose a booking first" }, 400)
+    } else return json({ error: "Coupons are available for single lane hire only" }, 400)
     const { data: coupon, error } = await supabaseAdmin
       .from("coupons")
-      .select("code,version,fixed_discount_minor,minimum_subtotal_minor,applies_to_service_type,starts_at,expires_at,status")
+      .select("id,code,version,fixed_discount_minor,minimum_subtotal_minor,applies_to_service_type,max_uses,starts_at,expires_at,status")
       .eq("code", code)
       .single()
     if (
@@ -58,6 +58,15 @@ export async function POST(request: Request) {
       return json({ error: "This coupon is not available" }, 400)
     if (subtotal < coupon.minimum_subtotal_minor)
       return json({ error: "Coupons apply to lane hire totals of £25 or more" }, 400)
+    const emailKey = couponEmailKey(body.email)
+    const [{ count: customerUses, error: customerError }, { count: campaignUses, error: campaignError }] = await Promise.all([
+      supabaseAdmin.from("coupon_redemptions").select("id", { count: "exact", head: true }).eq("email_key", emailKey).neq("state", "released"),
+      supabaseAdmin.from("coupon_redemptions").select("id", { count: "exact", head: true }).eq("coupon_id", coupon.id).neq("state", "released"),
+    ])
+    if (customerError || campaignError)
+      return json({ error: "Unable to verify this coupon right now" }, 503)
+    if ((customerUses ?? 0) > 0 || (campaignUses ?? 0) >= coupon.max_uses)
+      return json({ error: "This coupon is not available for this booking" }, 400)
     return json({
       coupon: {
         code,

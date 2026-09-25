@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/services/supabase';
 import { paymentsEnabled } from '@/lib/services/stripe';
-import { startPersistedCheckout } from '@/lib/services/checkout-attempts';
+import { checkoutAppUrl, startPersistedCheckout } from '@/lib/services/checkout-attempts';
 import { provisionBookingAccess } from '@/lib/security/guest-access';
 import { enforceRateLimit } from '@/lib/security/rate-limit';
 import { readJsonBody, RequestBodyError } from '@/lib/security/request-body';
@@ -10,7 +10,6 @@ import { whatsappConsentFields } from '@/lib/services/whatsapp';
 import { isSessionAgeAllowed, sessionAgeRange } from '@/lib/session-age';
 import { londonInstant, moneyPence, QuoteError } from '@/lib/booking-quote';
 import { isSameOriginRequest } from '@/lib/security/admin-auth';
-import { couponsEnabled, couponRequest } from '@/lib/services/coupons';
 import { groupCheckoutCookie, groupCheckoutCookieOptions, newGroupCheckoutKey, readGroupCheckoutKey, groupRequestIdentity } from '@/lib/security/group-checkout-key';
 
 export async function POST(request: NextRequest) {
@@ -26,6 +25,9 @@ export async function POST(request: NextRequest) {
   }
   try {
     const body = await readJsonBody(request);
+    if (['couponCode', 'couponVersion', 'couponSubtotal'].some(key => body[key] !== undefined)) {
+      return NextResponse.json({ success: false, error: 'Coupons are available for single lane hire only' }, { status: 400 });
+    }
     const { session_id, player_name, player_age, parent_name, parent_email, parent_phone, emergency_contact, medical_notes, skill_level } = body;
     if (typeof session_id !== 'string' || typeof player_name !== 'string' ||
         typeof parent_name !== 'string' || typeof parent_email !== 'string' || typeof parent_phone !== 'string' ||
@@ -49,7 +51,6 @@ export async function POST(request: NextRequest) {
     }
     const fields = { session_id, player_name, player_age: Number(player_age), parent_name, parent_email, parent_phone,
       whatsappConsent: body.whatsappConsent === true,
-      ...(body.couponCode ? { couponCode: body.couponCode, couponVersion: body.couponVersion } : {}),
       emergency_contact: emergency_contact ?? null, medical_notes: medical_notes ?? null, skill_level: skill_level ?? null };
     let identity;
     try { identity = groupRequestIdentity(browserKey, body.requestId, fields); }
@@ -68,7 +69,6 @@ export async function POST(request: NextRequest) {
     }
     await reconcileGroupCheckouts(session_id);
     const amountPence = moneyPence(session.price);
-    if (body.couponCode && body.couponSubtotal !== amountPence) return NextResponse.json({ success: false, error: 'The session price changed. Reapply the coupon before paying.' }, { status: 409 });
     if (amountPence < 30) {
       return NextResponse.json({ success: false, error: 'This session is not available for online payment. Please contact us.' }, { status: 400 });
     }
@@ -84,10 +84,7 @@ export async function POST(request: NextRequest) {
       checkout_description: `${session.title} – ${session.schedule}`,
       checkout_service_type: session.session_kind === 'masterclass' ? 'masterclass' : 'group_session',
     };
-    const promotion = await couponRequest(request, body, parent_email);
-    const { data: discounted, error: bookingError } = couponsEnabled()
-      ? await supabaseAdmin.rpc('reserve_group_with_coupon', { p_booking: reservation, ...promotion })
-      : await supabaseAdmin.from('group_session_bookings').insert(reservation);
+    const { error: bookingError } = await supabaseAdmin.from('group_session_bookings').insert(reservation);
     if (bookingError) {
       if (bookingError.code === '23505' || bookingError.code === '23514') {
         // The capacity trigger can reject a racing replay before PostgreSQL
@@ -98,10 +95,9 @@ export async function POST(request: NextRequest) {
         if (bookingError.code === '23505') throw new Error('Reservation unavailable');
       }
       if (bookingError.code === '23514') return NextResponse.json({ success: false, error: 'Session is full or inactive' }, { status: 409 });
-      if (couponsEnabled()) return NextResponse.json({ success: false, error: 'This coupon or session is no longer available. Reapply or remove the coupon and try again.' }, { status: 409 });
       throw bookingError;
     }
-    return await checkoutResponse(request, couponsEnabled() ? discounted : reservation, identity.fingerprint);
+    return await checkoutResponse(request, reservation, identity.fingerprint);
   } catch (error) {
     // A timeout can mean Stripe accepted payment creation. Keep the hold until
     // durable reconciliation proves the provider session is unpaid and terminal.
@@ -120,7 +116,7 @@ async function checkoutResponse(request: Request, booking: any, fingerprint: str
     bookingId: booking.id, bookingReference: booking.id, bookingKind: 'group_session', serviceType: booking.checkout_service_type,
     amount: String(booking.amount), customerEmail: booking.parent_email, customerName: booking.parent_name,
     description: booking.checkout_description, expiresAt: Math.floor(new Date(booking.expires_at).getTime() / 1000),
-    ...(booking.coupon_snapshot?.code ? { coupon: booking.coupon_snapshot } : {}),
+    appUrl: checkoutAppUrl(request),
   });
   if (!checkout.url) return NextResponse.json({ success: false, error: 'Payment is no longer available for this checkout.' }, { status: 409 });
   const response = NextResponse.json({ success: true, paymentUrl: checkout.url }, { headers: { 'Cache-Control': 'no-store' } });

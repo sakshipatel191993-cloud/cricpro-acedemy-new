@@ -17,6 +17,7 @@ import { Alert, AlertDescription } from "@workspace/ui/components/alert"
 import { Loader2, Eye, EyeOff } from "lucide-react"
 import { supabase } from "@/lib/services/supabase"
 import { safeReturnPath } from "@/lib/security/return-path"
+import { isConfirmedCustomer } from "@/lib/security/confirmed-customer"
 
 function LoginForm() {
   const router = useRouter()
@@ -34,13 +35,20 @@ function LoginForm() {
     setLoading(true)
     setError("")
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
     if (error) {
-      setError(error.message)
+      setError(error.code === "email_not_confirmed" ? "Please verify your email using the link in your inbox before signing in." : error.message)
+      setLoading(false)
+      return
+    }
+
+    if (!isConfirmedCustomer(data.user)) {
+      await supabase.auth.signOut({ scope: "local" })
+      setError("Please verify your email using the link in your inbox before signing in.")
       setLoading(false)
       return
     }

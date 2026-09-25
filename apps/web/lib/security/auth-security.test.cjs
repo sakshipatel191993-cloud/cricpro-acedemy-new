@@ -52,8 +52,36 @@ test('admin sessions and password verification fail closed and reject forged/exp
     assert.equal(await auth.isAdminRequest(new Request(request.url, { headers: { cookie: `admin_session=${token}; admin_session=${token}` } })), false)
     process.env.ADMIN_SECRET = 'rotated-test-only-secret-longer-than-32-characters'
     assert.equal(await auth.verifyAdminSession(token), false)
-    process.env.ADMIN_SECRET = 'ngca-admin-secret-change-in-production'
+    process.env.ADMIN_SECRET = ''
     assert.equal(auth.adminAuthConfigured(), false)
+  } finally {
+    if (savedPassword === undefined) delete process.env.ADMIN_PASSWORD; else process.env.ADMIN_PASSWORD = savedPassword
+    if (savedSecret === undefined) delete process.env.ADMIN_SECRET; else process.env.ADMIN_SECRET = savedSecret
+  }
+})
+
+test('existing configured credentials remain usable without forced rotation', async () => {
+  const savedPassword = process.env.ADMIN_PASSWORD
+  const savedSecret = process.env.ADMIN_SECRET
+  try {
+    for (const [password, secret] of [
+      ['short-test', 'short-test-secret'],
+      ['admin123', 'your-test-secret'],
+      ['ngca-admin-2024', 'ngca-admin-secret-change-in-production'],
+    ]) {
+      process.env.ADMIN_PASSWORD = password
+      process.env.ADMIN_SECRET = secret
+      assert.equal(auth.adminAuthConfigured(), true)
+      assert.equal(await auth.verifyAdminPassword(password), true)
+      assert.equal(await auth.verifyAdminPassword('incorrect-test-password'), false)
+      const token = await auth.createAdminSession()
+      assert.equal(await auth.verifyAdminSession(token), true)
+      assert.equal(process.env.ADMIN_PASSWORD, password)
+      assert.equal(process.env.ADMIN_SECRET, secret)
+    }
+    process.env.ADMIN_PASSWORD = ''
+    assert.equal(auth.adminAuthConfigured(), false)
+    assert.equal(await auth.verifyAdminPassword(''), false)
   } finally {
     if (savedPassword === undefined) delete process.env.ADMIN_PASSWORD; else process.env.ADMIN_PASSWORD = savedPassword
     if (savedSecret === undefined) delete process.env.ADMIN_SECRET; else process.env.ADMIN_SECRET = savedSecret

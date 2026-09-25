@@ -19,9 +19,13 @@ interface DatePickerProps {
   value: string;
   /** Called with the new `YYYY-MM-DD` value (or "" if cleared). */
   onChange: (value: string) => void;
+  /** Optional earliest selectable date, as `YYYY-MM-DD`. */
+  minDate?: string;
+  /** Optional latest selectable date, as `YYYY-MM-DD`. */
+  maxDate?: string;
 }
 
-export function DatePicker({ id, value, onChange }: DatePickerProps) {
+export function DatePicker({ id, value, onChange, minDate, maxDate }: DatePickerProps) {
   // Midnight today — past dates are disabled visually on every platform,
   // including iOS where the native date input ignores `min`.
   const today = React.useMemo(() => {
@@ -31,6 +35,13 @@ export function DatePicker({ id, value, onChange }: DatePickerProps) {
   }, []);
 
   const selected = value ? new Date(`${value}T00:00:00`) : undefined;
+  const earliest = minDate && /^\d{4}-\d{2}-\d{2}$/.test(minDate)
+    ? new Date(`${minDate}T00:00:00`)
+    : today;
+  const minimum = earliest > today ? earliest : today;
+  const maximum = maxDate && /^\d{4}-\d{2}-\d{2}$/.test(maxDate)
+    ? new Date(`${maxDate}T00:00:00`)
+    : undefined;
 
   return (
     <Popover>
@@ -52,9 +63,9 @@ export function DatePicker({ id, value, onChange }: DatePickerProps) {
           mode="single"
           selected={selected}
           onSelect={(day) => onChange(day ? dateToISO(day) : "")}
-          disabled={(date) => date < today}
-          startMonth={today}
-          defaultMonth={selected ?? today}
+          disabled={(date) => date < minimum || !!maximum && date > maximum}
+          startMonth={minimum}
+          defaultMonth={selected ?? minimum}
         />
       </PopoverContent>
     </Popover>

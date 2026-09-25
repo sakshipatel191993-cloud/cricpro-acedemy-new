@@ -15,8 +15,6 @@ import type { DbGroupSession } from "@/lib/db/schema";
 import { availableSessions } from '@/lib/session-options';
 import { WhatsAppOptIn } from '@/components/whatsapp-opt-in';
 import { isSessionAgeAllowed, sessionAgeOptions } from '@/lib/session-age';
-import { CouponField } from '@/components/coupon-field';
-import type { CouponSelection } from '@/lib/coupons';
 import { supabase } from '@/lib/services/supabase';
 
 export default function SessionsPage({ masterclass = false }: { masterclass?: boolean }) {
@@ -27,8 +25,6 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
   const [sessions, setSessions] = useState<DbGroupSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [coupon, setCoupon] = useState<CouponSelection | null>(null);
-  const [couponBusy, setCouponBusy] = useState(false);
   const checkoutDraft = useRef<{ fingerprint: string; requestId: string } | null>(null);
   const submittingRef = useRef(false);
 
@@ -58,7 +54,7 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (submittingRef.current || couponBusy) return;
+    if (submittingRef.current) return;
     if (!selected || selected.current_players >= selected.max_players) {
       toast.error('Choose an available session');
       return;
@@ -81,7 +77,6 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
       whatsappConsent: formData.get("whatsappConsent") === "yes",
       parent_email: formData.get("parent_email"),
       emergency_contact: formData.get("emergency_contact"),
-      ...(coupon ? { couponCode: coupon.code, couponVersion: coupon.version, couponSubtotal: coupon.subtotalMinor } : {}),
     };
     const fingerprint = JSON.stringify(payload);
     if (!checkoutDraft.current || checkoutDraft.current.fingerprint !== fingerprint) {
@@ -143,7 +138,7 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
           {masterclass && (
             <div className="max-w-5xl mx-auto mb-8 space-y-2">
               <Label htmlFor="coach_name">Coach Name</Label>
-              <select id="coach_name" value={coach} onChange={event => { setCoach(event.target.value); setSessionId(''); setPlayerAge(''); setCoupon(null); setCouponBusy(false); }} className="w-full sm:max-w-sm rounded-md border bg-background px-3 py-2" disabled={loading || submitting || couponBusy}>
+              <select id="coach_name" value={coach} onChange={event => { setCoach(event.target.value); setSessionId(''); setPlayerAge(''); }} className="w-full sm:max-w-sm rounded-md border bg-background px-3 py-2" disabled={loading || submitting}>
                 <option value="">All coaches</option>
                 {coaches.map(name => <option key={name} value={name}>{name}</option>)}
               </select>
@@ -279,7 +274,7 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="space-y-2">
                     <Label htmlFor="session_id">Select Session</Label>
-                    <Select name="session_id" required value={sessionId} disabled={submitting || couponBusy} onValueChange={(value) => { setSessionId(value ?? ""); setPlayerAge(''); setCoupon(null); setCouponBusy(false); }}>
+                    <Select name="session_id" required value={sessionId} disabled={submitting} onValueChange={(value) => { setSessionId(value ?? ""); setPlayerAge(''); }}>
                       <SelectTrigger id="session_id">
                         <SelectValue placeholder="Choose a session" />
                       </SelectTrigger>
@@ -351,15 +346,14 @@ export default function SessionsPage({ masterclass = false }: { masterclass?: bo
 
                   <WhatsAppOptIn disabled={submitting} />
                   <p className="text-sm text-muted-foreground">Your place is confirmed after successful payment through Stripe.</p>
-                  <CouponField key={sessionId} sessionId={sessionId} value={coupon} onChange={setCoupon} onBusyChange={setCouponBusy} disabled={submitting} />
-                  <Button type="submit" size="lg" className="w-full" disabled={submitting || couponBusy || loading || !allowedAges.length || (!selected || selected.current_players >= selected.max_players)}>
+                  <Button type="submit" size="lg" className="w-full" disabled={submitting || loading || !allowedAges.length || (!selected || selected.current_players >= selected.max_players)}>
                     {submitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Processing...
                       </>
                     ) : (
-                      (price ? `Continue to Payment - £${coupon ? (coupon.totalMinor / 100).toFixed(2) : price}` : "Choose a Session")
+                      (price ? `Continue to Payment - £${price}` : "Choose a Session")
                     )}
                   </Button>
                 </form>

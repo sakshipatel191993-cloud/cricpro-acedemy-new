@@ -75,7 +75,8 @@ const next = { NextResponse: { json: (body, init) => ({ body, status: init?.stat
   const webhook = load('apps/web/app/api/webhooks/stripe/route.ts', {
     'next/server': next,
     '@/lib/services/supabase': { supabaseAdmin: db },
-    '@/lib/services/booking-outbox': { dispatchBookingNotifications: async () => ({}) },
+    '@/lib/services/booking-outbox': { dispatchBookingNotifications: async () => ({}), dispatchBlockBookingNotifications: async () => ({}) },
+    '@/lib/services/block-bookings': { confirmBlockBooking: async () => {}, expireBlockBooking: async () => {} },
     '@/lib/services/stripe': { verifyWebhookSignature(body, signature) {
       assert.equal(body, 'raw-payload'); assert.equal(signature, 'signed-test');
       if (!signatureValid) throw new Error('Invalid signature');

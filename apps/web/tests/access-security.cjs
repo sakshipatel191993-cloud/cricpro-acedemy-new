@@ -59,8 +59,9 @@ function load(path, mocks) {
   const customerAuth = load('apps/web/lib/security/customer-auth.ts', {
     '@/lib/services/supabase': { isSupabaseConfigured: true, supabaseAdmin: { auth: { async getUser(token) {
       authCalls++;
-      return token === 'valid' ? { data: { user: { id: 'alice' } }, error: null } : { data: { user: null }, error: new Error('Invalid token') };
+      return token === 'valid' ? { data: { user: { id: 'alice', email_confirmed_at: '2026-09-25T00:00:00Z' } }, error: null } : { data: { user: null }, error: new Error('Invalid token') };
     } } } },
+    './confirmed-customer': { isConfirmedCustomer: user => !!user?.email_confirmed_at && !user.is_anonymous },
   });
   assert.equal(await customerAuth.getVerifiedCustomerId(new Request('https://example.test')), null);
   assert.equal(authCalls, 0);

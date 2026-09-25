@@ -30,7 +30,7 @@ function load(file, dependencies) {
   '@/lib/services/email':{sendGroupSessionConfirmation:async()=>{emails++}},
   '@/lib/services/stripe':{paymentsEnabled:true,createCheckoutSession:async(params)=>{checkoutCalls++;checkoutAmount=params.amount;return {sessionId:'cs_test',url:'https://checkout.stripe.com/test'}},getStripe:()=>({checkout:{sessions:{expire:async()=>({})}}})},
   '@/lib/services/session-checkout':{reconcileGroupCheckouts:async()=>{}},
-  '@/lib/services/checkout-attempts':{startPersistedCheckout:async(params)=>{checkoutCalls++;checkoutAmount=params.amount;return {sessionId:'cs_test',url:'https://checkout.stripe.com/test'}}},
+  '@/lib/services/checkout-attempts':{checkoutAppUrl:()=> 'http://127.0.0.1:3001',startPersistedCheckout:async(params)=>{checkoutCalls++;checkoutAmount=params.amount;return {sessionId:'cs_test',url:'https://checkout.stripe.com/test'}}},
   '@/lib/security/guest-access':{provisionBookingAccess:async()=>null},
   '@/lib/security/rate-limit':{enforceRateLimit:async()=>null},
   '@/lib/security/request-body':{readJsonBody:request=>request.json(),RequestBodyError:class extends Error{}},

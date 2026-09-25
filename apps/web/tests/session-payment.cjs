@@ -44,9 +44,10 @@ function load(file, deps) {
  const {POST}=load('apps/web/app/api/webhooks/stripe/route.ts', {
    'next/server':{NextResponse:{json:(body, options)=>({body,status:options?.status ?? 200})}},
    '@/lib/services/supabase':{supabaseAdmin:db},
-   '@/lib/services/booking-outbox':{dispatchBookingNotifications:async()=>({})},
+   '@/lib/services/booking-outbox':{dispatchBookingNotifications:async()=>({}),dispatchBlockBookingNotifications:async()=>({})},
    '@/lib/services/stripe':{verifyWebhookSignature:()=>event},
    '@/lib/services/confirm-booking':{confirmBooking:async()=>{throw Error('Wrong booking handler');}},
+   '@/lib/services/block-bookings':{confirmBlockBooking:async()=>{throw Error('Wrong booking handler');},expireBlockBooking:async()=>{}},
    '@/lib/services/confirm-group-booking':{confirmGroupBooking:async()=>{if(fail)throw Error('Database unavailable');fulfilled++;}},
    '@/lib/services/session-checkout':{expireGroupCheckout:async()=>{}},
  });

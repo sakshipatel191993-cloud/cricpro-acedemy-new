@@ -5,7 +5,7 @@ import { enforceRateLimit } from "@/lib/security/rate-limit"
 import { readJsonBody, RequestBodyError } from "@/lib/security/request-body"
 import { requireQuoteRollout, quoteCapability } from "@/lib/services/booking-quotes"
 import { QuoteError } from "@/lib/booking-quote"
-import { startPersistedCheckout } from "@/lib/services/checkout-attempts"
+import { checkoutAppUrl, startPersistedCheckout } from "@/lib/services/checkout-attempts"
 import { provisionBookingAccess, guestAccessEnabled } from "@/lib/security/guest-access"
 import { isSameOriginRequest, isAdminRequest } from "@/lib/security/admin-auth"
 import { getVerifiedCustomerId } from "@/lib/security/customer-auth"
@@ -113,6 +113,7 @@ export async function POST(request: NextRequest) {
       customerEmail: booking.customer_email, customerName: booking.customer_name,
       description: `${booking.service_type.replace(/_/g, ' ')} – ${String(booking.booking_date).slice(0, 10)}`,
       expiresAt: Math.floor(new Date(booking.expires_at).getTime() / 1000),
+      appUrl: checkoutAppUrl(request),
       ...(booking.coupon_snapshot?.code ? { coupon: booking.coupon_snapshot } : {}),
     });
     if (!result.url) throw new QuoteError('This checkout is already completed or expired. Please check your booking status.', 409);

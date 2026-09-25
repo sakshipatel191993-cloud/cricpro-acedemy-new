@@ -31,7 +31,7 @@ test('resource quotes preserve server-stamped WhatsApp consent with and without 
     '@/lib/security/request-body': { readJsonBody: r => r.json(), RequestBodyError: class extends Error {} },
     '@/lib/services/booking-quotes': { requireQuoteRollout() {}, quoteCapability: () => 'a'.repeat(64) },
     '@/lib/booking-quote': { QuoteError },
-    '@/lib/services/checkout-attempts': { startPersistedCheckout: async params => {
+    '@/lib/services/checkout-attempts': { checkoutAppUrl: () => 'http://127.0.0.1:3001', startPersistedCheckout: async params => {
       assert.equal(params.amount, promotion ? '34.00' : '40.00'); return { url: 'https://checkout.stripe.com/synthetic' };
     } },
     '@/lib/security/guest-access': { provisionBookingAccess: async () => null },
@@ -40,9 +40,10 @@ test('resource quotes preserve server-stamped WhatsApp consent with and without 
     '@/lib/services/coupons': { couponsEnabled: () => promotion, couponRequest: async () => ({ p_code: 'COACH15' }) },
   });
   const body = { quoteId: 'synthetic-quote', customerName: 'Synthetic', customerEmail: 'test@example.invalid', customerPhone: '+447700900123', whatsappConsent: true, amount: 1 };
+  const request = json => ({ url: 'http://127.0.0.1:3001/api/bookings', json });
   for (const enabled of [false, true]) {
     promotion = enabled;
-    assert.equal((await route.POST({ json: async () => body })).status, 200);
+    assert.equal((await route.POST(request(async () => body))).status, 200);
     assert.equal(rpcName, enabled ? 'reserve_quote_with_coupon' : 'reserve_booking_quote');
     assert.equal(saved.p_customer.whatsapp_consent.phone, '447700900123');
     assert.equal(saved.p_customer.whatsapp_consent.version, 'transactional-v1');
@@ -50,9 +51,9 @@ test('resource quotes preserve server-stamped WhatsApp consent with and without 
     assert.equal(saved.p_customer.amount, undefined, 'No client price enters the transaction');
   }
   const before = reserves;
-  assert.equal((await route.POST({ json: async () => ({ ...body, whatsappConsent: 'yes' }) })).status, 400);
+  assert.equal((await route.POST(request(async () => ({ ...body, whatsappConsent: 'yes' })))).status, 400);
   assert.equal(reserves, before);
-  assert.equal((await route.POST({ json: async () => ({ ...body, whatsappConsent: false }) })).status, 200);
+  assert.equal((await route.POST(request(async () => ({ ...body, whatsappConsent: false })))).status, 200);
   assert.equal(saved.p_customer.whatsapp_consent, undefined);
 });
 test('payment-success fallback dispatches durable emails for resource and group bookings without leaking private data', async () => {
@@ -61,8 +62,9 @@ test('payment-success fallback dispatches durable emails for resource and group 
     'next/server': next, '@/lib/services/supabase': {},
     '@/lib/services/stripe': { getStripe: () => ({ checkout: { sessions: { retrieve: async () => ({ id: 'cs_synthetic123', payment_status: 'paid', metadata: { booking_id: 'booking', ...(group ? { booking_kind: 'group_session' } : {}) } }) } } }) },
     '@/lib/services/confirm-booking': { confirmBooking: async () => { confirms++; } },
+    '@/lib/services/block-bookings': { confirmBlockBooking: async () => { throw new Error('Unexpected block booking'); } },
     '@/lib/services/confirm-group-booking': { confirmGroupBooking: async () => { confirms++; return { id: 'booking' }; } },
-    '@/lib/services/booking-outbox': { dispatchBookingNotifications: async () => { assert.equal(confirms, dispatches + 1); dispatches++; } },
+    '@/lib/services/booking-outbox': { dispatchBookingNotifications: async () => { assert.equal(confirms, dispatches + 1); dispatches++; }, dispatchBlockBookingNotifications: async () => { throw new Error('Unexpected block booking'); } },
     '@/lib/security/guest-access': { guestSameOrigin: () => true, guestAccessEnabled: () => false },
     '@/lib/security/rate-limit': { enforceRateLimit: async () => null },
     '@/lib/security/request-body': { readJsonBody: async () => ({ sessionId: 'cs_synthetic123' }) },

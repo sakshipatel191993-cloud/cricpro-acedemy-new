@@ -1,11 +1,12 @@
 import type Stripe from 'stripe';
+import { confirmBlockBooking, expireBlockBooking } from '@/lib/services/block-bookings';
 import { confirmGroupBooking } from '@/lib/services/confirm-group-booking';
 import { expireGroupCheckout } from '@/lib/services/session-checkout';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/services/supabase';
 import { verifyWebhookSignature } from '@/lib/services/stripe';
 import { confirmBooking } from '@/lib/services/confirm-booking';
-import { dispatchBookingNotifications } from '@/lib/services/booking-outbox';
+import { dispatchBlockBookingNotifications, dispatchBookingNotifications } from '@/lib/services/booking-outbox';
 
 export const maxDuration = 60;
 
@@ -28,6 +29,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
+    let confirmedBlockId: string | null = null;
     switch (event.type) {
       case 'checkout.session.completed':
       case 'checkout.session.async_payment_succeeded': {
@@ -35,7 +37,10 @@ export async function POST(request: NextRequest) {
         if (session.payment_status !== 'paid') break;
         const bookingId = session.metadata?.booking_id;
         if (!bookingId) break;
-        if (session.metadata?.booking_kind === 'group_session') {
+        if (session.metadata?.booking_kind === 'block') {
+          await confirmBlockBooking(bookingId, session.id);
+          confirmedBlockId = bookingId;
+        } else if (session.metadata?.booking_kind === 'group_session') {
           await confirmGroupBooking(session);
         } else {
           await confirmBooking(bookingId, session.id);
@@ -48,7 +53,9 @@ export async function POST(request: NextRequest) {
         const session = event.data.object as Stripe.Checkout.Session;
         const bookingId = session.metadata?.booking_id;
         if (!bookingId) break;
-        if (session.metadata?.booking_kind === 'group_session') {
+        if (session.metadata?.booking_kind === 'block') {
+          await expireBlockBooking(bookingId, session.id);
+        } else if (session.metadata?.booking_kind === 'group_session') {
           await expireGroupCheckout(bookingId, session.id);
         } else {
           const { error } = await supabaseAdmin.from('bookings')
@@ -77,7 +84,11 @@ export async function POST(request: NextRequest) {
     // Fulfilment and outbox are committed together. Provider email outages must
     // not undo a paid booking; the authenticated recovery worker retries these.
     if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
-      await dispatchBookingNotifications(5).catch(() => console.error('Booking notification dispatch deferred'));
+      if (confirmedBlockId) {
+        await dispatchBlockBookingNotifications(confirmedBlockId).catch(() => console.error('Block booking notification dispatch deferred'));
+      } else {
+        await dispatchBookingNotifications(5).catch(() => console.error('Booking notification dispatch deferred'));
+      }
     }
     return NextResponse.json({ received: true });
   } catch (error) {

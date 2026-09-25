@@ -44,7 +44,7 @@ begin
  return true;
 end $$;
 
-create function public.claim_block_booking_notifications(p_block_booking_id uuid,p_limit integer default 2)
+create or replace function public.claim_block_booking_notifications(p_block_booking_id uuid,p_limit integer default 2)
 returns setof public.booking_notification_outbox language plpgsql security invoker set search_path='' as $$
 begin
  return query update public.booking_notification_outbox o

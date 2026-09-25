@@ -1,7 +1,7 @@
 -- Future single and block lane bookings use CCOE-XXXXXX customer references.
 -- Existing references stay unchanged so paid checkout links and past emails
 -- remain valid.
-create function public.new_customer_booking_reference()
+create or replace function public.new_customer_booking_reference()
 returns text language plpgsql volatile security invoker set search_path=public,extensions,pg_temp as $$
 declare alphabet constant text:='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; bytes bytea; candidate text; attempt integer; position integer;
 begin
@@ -17,7 +17,7 @@ begin
  raise exception 'Could not allocate booking reference';
 end $$;
 
-create function public.assign_customer_booking_reference()
+create or replace function public.assign_customer_booking_reference()
 returns trigger language plpgsql security invoker set search_path=public,pg_temp as $$
 begin
  if new.booking_reference is null or new.booking_reference ~ '^CPB?-' then

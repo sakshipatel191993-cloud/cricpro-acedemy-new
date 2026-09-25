@@ -8,13 +8,23 @@ import { Label } from "@workspace/ui/components/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select";
 import Link from "next/link";
 import { ArrowLeft, Clock, Users, Calendar, CheckCircle, Minus, Plus } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/context/auth";
 import { DatePicker } from "@/components/date-picker";
 import { RateSchedule } from "@/components/rate-schedule";
+import { blockBookingDates, blockBookingMaxEndDate } from "@/lib/block-booking";
 
 interface LaneResource { id: string; name: string; capacity: number }
+
+async function readApiJson(response: Response, fallback: string) {
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(fallback);
+  }
+}
 
 export default function LaneHirePage() {
   const router = useRouter();
@@ -22,11 +32,17 @@ export default function LaneHirePage() {
   const [lanes, setLanes] = useState<LaneResource[]>([]);
   const [selectedLaneId, setSelectedLaneId] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
-  const [slots, setSlots] = useState<Array<{time: string; availableLanes: number; price: string}>>([]);
+  const [slots, setSlots] = useState<Array<{time: string; availableLanes: number; price: string; priceLabel?: string; standardPrice?: string}>>([]);
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [totalPrice, setTotalPrice] = useState(0);
+  const [standardTotalPrice, setStandardTotalPrice] = useState(0);
   const [loading, setLoading] = useState(false);
   const [slotsError, setSlotsError] = useState('');
+  const [bookingMode, setBookingMode] = useState<'single' | 'block'>('single');
+  const [blockEndDate, setBlockEndDate] = useState('');
+  const [blockWeekdays, setBlockWeekdays] = useState<number[]>([]);
+  const slotsRequestId = useRef(0);
+  const blockWeekdaysKey = blockWeekdays.join(',');
   const [formData, setFormData] = useState({
     date: '',
     duration: '1',
@@ -54,7 +70,7 @@ export default function LaneHirePage() {
     async function fetchLanes() {
       try {
         const res = await fetch('/api/resources?type=lane');
-        const data = await res.json();
+        const data = await readApiJson(res, 'Lanes could not be loaded. Please refresh the page.');
         if (data.success) {
           const active: LaneResource[] = data.resources.filter((r: any) => r.active);
           setLanes(active);
@@ -67,36 +83,80 @@ export default function LaneHirePage() {
     fetchLanes();
   }, []);
 
-  // Refetch slots when lane or date changes
-  useEffect(() => {
-    if (selectedDate && selectedLaneId) fetchSlots();
-  }, [selectedDate, selectedLaneId, formData.duration]);
+  let availabilityDate = selectedDate;
+  if (bookingMode === 'block' && formData.date && blockEndDate && blockWeekdays.length > 0) {
+    try {
+      // The selected range can start before its first requested weekday. Show
+      // the same slots and price as a single booking on that first occurrence.
+      availabilityDate = blockBookingDates({ startDate: formData.date, endDate: blockEndDate, weekdays: blockWeekdays })[0] ?? selectedDate;
+    } catch {
+      availabilityDate = selectedDate;
+    }
+  }
 
-  async function fetchSlots() {
+  useEffect(() => {
+    if (availabilityDate && selectedLaneId) fetchSlots(availabilityDate);
+  }, [availabilityDate, selectedLaneId, formData.duration, blockWeekdaysKey]);
+
+  async function fetchSlots(date: string) {
+    const requestId = ++slotsRequestId.current;
     setLoading(true);
     setSlotsError('');
     setSlots([]);
     setSelectedSlots([]);
     setTotalPrice(0);
+    setStandardTotalPrice(0);
     try {
-      const res = await fetch(`/api/slots?resourceType=lane&resourceId=${selectedLaneId}&date=${selectedDate}&durationMinutes=${Number(formData.duration) * 60}`);
-      const data = await res.json();
+      const hasBlockSchedule = bookingMode === 'block' && formData.date && blockEndDate && blockWeekdays.length > 0;
+      const res = hasBlockSchedule
+        ? await fetch('/api/block-bookings/slots', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ resourceId: selectedLaneId, startDate: formData.date, endDate: blockEndDate, weekdays: blockWeekdays, durationMinutes: Number(formData.duration) * 60 }),
+          })
+        : await fetch(`/api/slots?resourceType=lane&resourceId=${selectedLaneId}&date=${date}&durationMinutes=${Number(formData.duration) * 60}`);
+      const data = await readApiJson(res, 'Availability is temporarily unavailable. Please try again.');
+      if (requestId !== slotsRequestId.current) return;
       if (!res.ok || !data.success) throw new Error(typeof data.error === 'string' ? data.error : 'Availability could not be checked. Please try again.');
-      if (data.success && data.dates.length > 0) {
+      if (hasBlockSchedule) {
+        setSlots(data.slots.map((slot: { time: string; amountPence: number; standardAmountPence: number }) => {
+          const total = slot.amountPence / 100;
+          const standardTotal = slot.standardAmountPence / 100;
+          return { time: slot.time, availableLanes: 1, price: total.toFixed(2), priceLabel: `£${total.toFixed(2)} block total`, ...(standardTotal > total ? { standardPrice: standardTotal.toFixed(2) } : {}) };
+        }));
+      } else if (data.dates.length > 0) {
         setSlots(data.dates[0].slots);
       }
     } catch (e) {
-      setSlotsError(e instanceof Error ? e.message : 'Availability could not be checked. Please try again.');
+      if (requestId === slotsRequestId.current) setSlotsError(e instanceof Error ? e.message : 'Availability could not be checked. Please try again.');
     } finally {
-      setLoading(false);
+      if (requestId === slotsRequestId.current) setLoading(false);
     }
+  }
+
+  function resetBookingData() {
+    slotsRequestId.current += 1;
+    setSelectedDate('');
+    setSlots([]);
+    setSelectedSlots([]);
+    setTotalPrice(0);
+    setStandardTotalPrice(0);
+    setSlotsError('');
+    setLoading(false);
+    setBlockEndDate('');
+    setBlockWeekdays([]);
+    setFormData(prev => ({ ...prev, date: '', duration: '1', players: '1', notes: '' }));
+    sessionStorage.removeItem('pendingBooking');
   }
 
   function switchLane(laneId: string) {
     setSelectedLaneId(laneId);
-    setSelectedSlots([]);
-    setTotalPrice(0);
-    setSlots([]);
+    resetBookingData();
+  }
+
+  function switchBookingMode(mode: 'single' | 'block') {
+    if (mode === bookingMode) return;
+    setBookingMode(mode);
+    resetBookingData();
   }
 
   function toggleSlot(time: string) {
@@ -112,22 +172,53 @@ export default function LaneHirePage() {
     });
   }
 
+  const blockMaxEndDate = blockBookingMaxEndDate(formData.date);
   useEffect(() => {
-    let price = 0;
-    selectedSlots.forEach(slotTime => {
-      const slot = slots.find(s => s.time === slotTime);
-      if (slot) price += parseFloat(slot.price);
+    let cancelled = false;
+    const singlePrice = () => {
+      let price = 0;
+      selectedSlots.forEach(slotTime => {
+        const slot = slots.find(s => s.time === slotTime);
+        if (slot) price += parseFloat(slot.price);
+      });
+      setTotalPrice(price);
+      setStandardTotalPrice(price);
+    };
+    if (bookingMode !== 'block' || selectedSlots.length !== 1 || !selectedLaneId || !formData.date || !blockEndDate || blockWeekdays.length === 0) {
+      singlePrice();
+      return () => { cancelled = true; };
+    }
+    try { blockBookingDates({ startDate: formData.date, endDate: blockEndDate, weekdays: blockWeekdays }); }
+    catch { setTotalPrice(0); setStandardTotalPrice(0); return () => { cancelled = true; }; }
+    setTotalPrice(0);
+    setStandardTotalPrice(0);
+    setSlotsError('');
+    const controller = new AbortController();
+    void fetch('/api/block-bookings/preview', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: controller.signal,
+      body: JSON.stringify({ resourceId: selectedLaneId, startDate: formData.date, endDate: blockEndDate, weekdays: blockWeekdays, startTime: selectedSlots[0], durationMinutes: Number(formData.duration) * 60 }),
+    }).then(async (response) => {
+      const data = await readApiJson(response, 'Availability is temporarily unavailable. Please try again.');
+      if (!response.ok || !data.success) throw new Error(data.error || 'Availability could not be checked.');
+      if (!cancelled) {
+        setTotalPrice(data.quote.amountPence / 100);
+        setStandardTotalPrice((data.quote.standardAmountPence ?? data.quote.amountPence) / 100);
+      }
+    }).catch((error) => {
+      if (!cancelled) {
+        setTotalPrice(0);
+        setStandardTotalPrice(0);
+        setSlotsError(error instanceof Error ? error.message : 'Availability could not be checked.');
+      }
     });
-    setTotalPrice(price);
-  }, [selectedSlots, slots, formData.duration]);
+    return () => { cancelled = true; controller.abort(); };
+  }, [bookingMode, selectedSlots, selectedLaneId, formData.date, formData.duration, blockEndDate, blockWeekdays, slots]);
 
   function formatTime(time: string) {
-    const hour = parseInt(time.split(':')[0] ?? '0');
-    const min = time.split(':')[1] ?? '00';
-    if (hour === 0) return `12:${min} AM`;
-    if (hour < 12) return `${hour}:${min} AM`;
-    if (hour === 12) return `12:${min} PM`;
-    return `${hour - 12}:${min} PM`;
+    const hour = Number(time.slice(0, 2));
+    const minute = time.slice(3, 5);
+    const suffix = hour >= 12 ? 'PM' : 'AM';
+    return `${hour % 12 || 12}:${minute} ${suffix}`;
   }
 
   function handleSubmit(e: React.SyntheticEvent) {
@@ -136,6 +227,11 @@ export default function LaneHirePage() {
     if (totalPrice === 0) { alert("Please ensure selected slots have prices."); return; }
     if (!selectedLaneId) { alert("Please select a lane."); return; }
 
+    let blockDates: string[] = [];
+    if (bookingMode === 'block') {
+      try { blockDates = blockBookingDates({ startDate: formData.date, endDate: blockEndDate, weekdays: blockWeekdays }); }
+      catch (error) { alert(error instanceof Error ? error.message : 'Check your block booking dates.'); return; }
+    }
     const lane = lanes.find(l => l.id === selectedLaneId);
     sessionStorage.setItem('pendingBooking', JSON.stringify({
       serviceType: 'lane_hire',
@@ -151,6 +247,8 @@ export default function LaneHirePage() {
       customerPhone: formData.phone,
       playerCount: parseInt(formData.players),
       notes: formData.notes,
+      bookingMode,
+      ...(bookingMode === 'block' ? { blockSchedule: { endDate: blockEndDate, weekdays: blockWeekdays, dates: blockDates } } : {}),
     }));
     router.push('/booking-confirm');
   }
@@ -276,6 +374,13 @@ export default function LaneHirePage() {
               </CardHeader>
               <CardContent>
                 <form className="space-y-6" onSubmit={handleSubmit}>
+                  <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-4">
+                    <div className="flex flex-wrap gap-2" role="group" aria-label="Booking type">
+                      <Button type="button" variant={bookingMode === 'single' ? 'default' : 'outline'} size="sm" onClick={() => switchBookingMode('single')}>Single booking</Button>
+                      <Button type="button" variant={bookingMode === 'block' ? 'default' : 'outline'} size="sm" onClick={() => switchBookingMode('block')}>Block booking</Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{bookingMode === 'block' ? 'Repeat the same lane, time and duration on selected weekdays for up to four months.' : 'Book one session.'}</p>
+                  </div>
                   <div className="space-y-2">
                     <Label>Preferred Date</Label>
                     <DatePicker
@@ -284,12 +389,25 @@ export default function LaneHirePage() {
                       onChange={(value) => {
                         setFormData({...formData, date: value});
                         setSelectedDate(value);
+                        if (blockEndDate && (!value || blockEndDate > (blockBookingMaxEndDate(value) ?? ''))) setBlockEndDate('');
                       }}
                     />
                   </div>
 
+                  {bookingMode === 'block' && <div className="space-y-4 rounded-lg border border-border p-4">
+                    <div className="space-y-2">
+                      <Label>Repeat until</Label>
+                      <DatePicker id="repeat-until" value={blockEndDate} minDate={formData.date || undefined} maxDate={blockMaxEndDate ?? undefined} onChange={setBlockEndDate} />
+                      {blockMaxEndDate && <p className="text-xs text-muted-foreground">Choose a date up to {new Date(`${blockMaxEndDate}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}.</p>}
+                    </div>
+                    <div className="space-y-2"><Label>Repeat on</Label><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((label, day) => <Button key={label} type="button" variant={blockWeekdays.includes(day) ? 'default' : 'outline'} size="sm" onClick={() => setBlockWeekdays((value) => value.includes(day) ? value.filter((item) => item !== day) : [...value, day])}>{label}</Button>)}
+                    </div></div>
+                    {formData.date && blockEndDate && blockWeekdays.length > 0 && <p className="text-sm text-muted-foreground">{(() => { try { return `${blockBookingDates({ startDate: formData.date, endDate: blockEndDate, weekdays: blockWeekdays }).length} sessions will be checked before payment.` } catch (error) { return error instanceof Error ? error.message : 'Check your dates.' } })()}</p>}
+                  </div>}
+
                   <div className="space-y-2">
-                    <Label>Available Slots</Label>
+                    <Label>Available Slots{bookingMode === 'block' && availabilityDate ? ` · first session ${availabilityDate}` : ''}</Label>
                     {loading ? (
                       <div className="flex items-center justify-center h-24">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -323,7 +441,7 @@ export default function LaneHirePage() {
                             >
                               <span className="font-semibold text-sm">{formatTime(slot.time)}</span>
                               <span className="opacity-70 mt-0.5">{booked ? 'Unavailable' : 'Available'}</span>
-                              <span className="font-medium mt-0.5">£{parseFloat(slot.price).toFixed(2)} total</span>
+                              {slot.priceLabel ? <span className="font-medium mt-0.5">{slot.standardPrice && <span className="mr-1 opacity-70 line-through">£{slot.standardPrice}</span>}<span>{slot.priceLabel}</span></span> : <span className="font-medium mt-0.5">£{parseFloat(slot.price).toFixed(2)} total</span>}
                             </button>
                           );
                         })}
@@ -429,8 +547,8 @@ export default function LaneHirePage() {
                   </div>
 
                   <div className="flex justify-between items-center text-lg font-bold border-t border-border pt-4">
-                    <span>Total:</span>
-                    <span>£{totalPrice.toFixed(2)}</span>
+                    <span>{bookingMode === 'block' && standardTotalPrice > totalPrice ? 'Discounted block total:' : bookingMode === 'block' ? 'Block total:' : 'Total:'}</span>
+                    <span>{bookingMode === 'block' && standardTotalPrice > totalPrice && <span className="mr-2 text-sm font-medium text-muted-foreground line-through">£{standardTotalPrice.toFixed(2)}</span>}£{totalPrice.toFixed(2)}</span>
                   </div>
 
                   <Button type="submit" size="lg" className="w-full" disabled={selectedSlots.length === 0 || totalPrice === 0}>

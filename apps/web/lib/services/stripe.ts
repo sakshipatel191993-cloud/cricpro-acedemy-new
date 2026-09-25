@@ -21,7 +21,7 @@ export async function createCheckoutSession(params: {
   customerEmail: string;
   customerName: string;
   description: string;
-  bookingKind?: 'group_session';
+  bookingKind?: 'group_session' | 'block';
   // Persist once with the booking so retries send identical Stripe parameters.
   expiresAt: number;
   appUrl?: string;
@@ -30,6 +30,7 @@ export async function createCheckoutSession(params: {
   if (!Number.isSafeInteger(params.expiresAt) || params.expiresAt <= 0) {
     throw new Error('A fixed checkout expiry is required');
   }
+  if (params.bookingKind === 'block' && params.coupon) throw new Error('Block discounts are not supported');
   const stripe = getStripe();
   const appUrl = params.appUrl ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 
@@ -58,7 +59,7 @@ export async function createCheckoutSession(params: {
     success_url: `${appUrl}/booking-success?session_id={CHECKOUT_SESSION_ID}&ref=${params.bookingReference}`,
     cancel_url: `${appUrl}/booking-cancel?ref=${params.bookingReference}&service=${params.serviceType}`,
     expires_at: params.expiresAt,
-  }, { idempotencyKey: `${params.bookingKind ? 'group' : 'resource'}-checkout-${params.bookingId}` });
+  }, { idempotencyKey: `${params.bookingKind === 'block' ? 'block' : params.bookingKind ? 'group' : 'resource'}-checkout-${params.bookingId}` });
 
   if (!session.url) throw new Error('Checkout URL unavailable');
   return { sessionId: session.id, url: session.url! };

@@ -17,7 +17,18 @@ export function readGuestToken(request: Request) {
 }
 export function guestSameOrigin(request: Request) {
   const origin = request.headers.get('origin');
-  return !!origin && origin === new URL(request.url).origin;
+  if (!origin || request.headers.get('sec-fetch-site') === 'cross-site') return false;
+  try {
+    const requestUrl = new URL(request.url);
+    const requestOrigin = requestUrl.origin;
+    const host = request.headers.get('host');
+    const forwardedProtocol = request.headers.get('x-forwarded-proto') ?? requestUrl.protocol.replace(':', '');
+    const browserFacingOrigin = host ? `${forwardedProtocol}://${host}` : null;
+    const suppliedOrigin = new URL(origin).origin;
+    return suppliedOrigin === requestOrigin || suppliedOrigin === browserFacingOrigin;
+  } catch {
+    return false;
+  }
 }
 export async function ensureBookingScope(kind: BookingKind, id: string) {
   const key = kind === 'resource' ? 'booking_id' : 'group_booking_id';

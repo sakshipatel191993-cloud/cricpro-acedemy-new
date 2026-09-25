@@ -7,14 +7,14 @@ import type { CouponSelection } from "@/lib/coupons"
 
 export function CouponField({
   quoteId,
-  sessionId,
+  email,
   value,
   onChange,
   onBusyChange,
   disabled = false,
 }: {
   quoteId?: string
-  sessionId?: string
+  email?: string
   value: CouponSelection | null
   onChange: (value: CouponSelection | null) => void
   onBusyChange?: (busy: boolean) => void
@@ -49,7 +49,7 @@ export function CouponField({
       const response = await fetch("/api/coupons/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, quoteId, sessionId }),
+        body: JSON.stringify({ code, quoteId, email }),
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || "Coupon unavailable")
@@ -86,7 +86,7 @@ export function CouponField({
         <Button
           type="button"
           variant="outline"
-          disabled={!code.trim() || (!quoteId && !sessionId)}
+          disabled={!code.trim() || !email || !quoteId}
           onClick={() => void apply()}
         >
           {busy ? "Checking…" : "Apply"}

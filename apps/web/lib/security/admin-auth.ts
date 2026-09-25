@@ -50,7 +50,13 @@ export async function isAdminRequest(request: Request): Promise<boolean> {
 export function isSameOriginRequest(request: Request): boolean {
   const origin = request.headers.get('origin');
   if (!origin || request.headers.get('sec-fetch-site') === 'cross-site') return false;
-  try { return new URL(origin).origin === new URL(request.url).origin; }
+  try {
+    const requestOrigin = new URL(request.url).origin;
+    const host = request.headers.get('host');
+    const forwardedProtocol = request.headers.get('x-forwarded-proto') ?? new URL(request.url).protocol.replace(':', '');
+    const hostOrigin = host ? `${forwardedProtocol}://${host}` : null;
+    return new URL(origin).origin === requestOrigin || new URL(origin).origin === hostOrigin;
+  }
   catch { return false; }
 }
 

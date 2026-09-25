@@ -63,6 +63,9 @@ export async function PATCH(request: NextRequest) {
     }
 
     const updateData: Record<string, unknown> = {};
+    const { data: existing, error: readError } = await supabaseAdmin.from('bookings').select('block_booking_id').eq('id', id).single();
+    if (readError) throw readError;
+    if (existing.block_booking_id && (status || payment_status)) return NextResponse.json({ success: false, error: 'Block payment and reservation status must be managed together through payment reconciliation.' }, { status: 409 });
     if (status) updateData.status = status;
     if (payment_status) updateData.payment_status = payment_status;
     if (notes !== undefined) updateData.notes = notes;
@@ -98,12 +101,16 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { error } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from('bookings')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .is('block_booking_id', null)
+      .select('id');
 
     if (error) throw error;
+
+    if (!data?.length) return NextResponse.json({ success: false, error: 'Booking not found or belongs to a block. Block sessions cannot be deleted individually.' }, { status: 409 });
 
     return NextResponse.json({ success: true });
   } catch (error) {

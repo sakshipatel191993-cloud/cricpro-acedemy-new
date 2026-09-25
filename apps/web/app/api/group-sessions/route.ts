@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { paymentsEnabled } from '@/lib/services/stripe';
 import { reconcileGroupCheckouts } from '@/lib/services/session-checkout';
 import { supabaseAdmin } from '@/lib/services/supabase';
+import { isUpcomingSession } from '@/lib/session-options';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,7 +20,10 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true, sessions: data });
+    return NextResponse.json(
+      { success: true, sessions: (data ?? []).filter(session => isUpcomingSession(session)) },
+      { headers: { 'Cache-Control': 'no-store' } },
+    );
   } catch (error) {
     console.error('Group sessions fetch error:', error);
     return NextResponse.json(

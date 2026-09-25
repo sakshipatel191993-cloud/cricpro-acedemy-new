@@ -1,17 +1,31 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const ts = require(process.cwd() + '/node_modules/typescript');
-const file = 'apps/web/lib/session-options.ts';
-assert.ok(fs.existsSync(file), 'Session selection helper must exist');
-const code = ts.transpile(fs.readFileSync(file, 'utf8'), {module: ts.ModuleKind.CommonJS});
-const mod = {};
-new Function('exports', code)(mod);
+const path = require('node:path');
+const ts = require('typescript');
+const root = path.resolve(__dirname, '../../..');
+
+function load(file, deps = {}) {
+  const module = { exports: {} };
+  const code = ts.transpile(fs.readFileSync(path.join(root, file), 'utf8'), { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 });
+  new Function('require', 'module', 'exports', code)(name => {
+    if (!(name in deps)) throw new Error(`Unexpected dependency ${name}`);
+    return deps[name];
+  }, module, module.exports);
+  return module.exports;
+}
+
+const bookingQuote = load('apps/web/lib/booking-quote.ts');
+const options = load('apps/web/lib/session-options.ts', { './booking-quote': bookingQuote });
+const now = Date.parse('2030-01-02T12:00:00Z');
 const sessions = [
- {id:'group',session_kind:'group',coach_name:'Abbas',active:true,max_players:12,current_players:0},
- {id:'a',session_kind:'masterclass',coach_name:'Abbas',active:true,max_players:12,current_players:1},
- {id:'b',session_kind:'masterclass',coach_name:'Other',active:true,max_players:12,current_players:0},
- {id:'c',session_kind:'masterclass',coach_name:'Abbas',active:false,max_players:12,current_players:0},
+  { id: 'group', session_kind: 'group', coach_name: 'Abbas', active: true, session_date: '2030-01-03', end_time: '10:30:00' },
+  { id: 'a', session_kind: 'masterclass', coach_name: 'Abbas', active: true, session_date: '2030-01-03', end_time: '15:00:00' },
+  { id: 'b', session_kind: 'masterclass', coach_name: 'Other', active: true, session_date: '2030-01-03', end_time: '15:00:00' },
+  { id: 'past', session_kind: 'masterclass', coach_name: 'Abbas', active: true, session_date: '2030-01-01', end_time: '15:00:00' },
+  { id: 'c', session_kind: 'masterclass', coach_name: 'Abbas', active: false, session_date: '2030-01-03', end_time: '15:00:00' },
 ];
-assert.deepEqual(mod.availableSessions(sessions,'masterclass','Abbas').map(s=>s.id), ['a']);
-assert.deepEqual(mod.availableSessions(sessions,'group','').map(s=>s.id), ['group']);
-console.log('Session selection tests passed');
+
+assert.deepEqual(options.availableSessions(sessions, 'masterclass', 'Abbas', now).map(session => session.id), ['a']);
+assert.deepEqual(options.availableSessions(sessions, 'group', '', now).map(session => session.id), ['group']);
+assert.equal(options.isUpcomingSession(sessions.find(session => session.id === 'past'), now), false);
+console.log('PASS: active, future UK sessions only');

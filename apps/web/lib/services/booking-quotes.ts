@@ -9,11 +9,11 @@ export function requireQuoteRollout() {
 }
 export const quoteCookieName = 'cricpro_quote';
 export const quoteTokenHash = (token: string) => createHash('sha256').update(token).digest('hex');
-export function quoteCapability(request: Request, id: string): string | null {
+export function quoteCapability(request: Request, id: string, cookieName = quoteCookieName): string | null {
   if (!/^[0-9a-f-]{36}$/.test(id)) return null;
-  const match = (request.headers.get('cookie') ?? '').split(';').map(v => v.trim()).filter(v => v.startsWith(`${quoteCookieName}=`));
+  const match = (request.headers.get('cookie') ?? '').split(';').map(v => v.trim()).filter(v => v.startsWith(`${cookieName}=`));
   if (match.length !== 1) return null;
-  const value = match[0]!.slice(quoteCookieName.length + 1);
+  const value = match[0]!.slice(cookieName.length + 1);
   if (!value.startsWith(`${id}.`)) return null;
   const token = value.slice(id.length + 1);
   return /^[a-f0-9]{64}$/.test(token) ? quoteTokenHash(token) : null;
@@ -31,11 +31,12 @@ export async function loadQuoteConfiguration() {
   if (values.some(value => value.length > 5000)) throw new QuoteError('Availability configuration requires review', 503);
   return Object.fromEntries(tables.map((table, i) => [table, values[i]])) as Record<typeof tables[number], any[]>;
 }
-export async function loadQuoteBookings(date: string) {
+export async function loadQuoteBookings(date: string, endDate = date) {
   const midnight = Date.parse(`${date}T00:00:00Z`);
-  if (!Number.isFinite(midnight)) throw new QuoteError('Choose a valid date');
+  const endMidnight = Date.parse(`${endDate}T00:00:00Z`);
+  if (!Number.isFinite(midnight) || !Number.isFinite(endMidnight) || endMidnight < midnight) throw new QuoteError('Choose a valid date');
   const existing = await rows(supabaseAdmin.from('bookings').select('id,resource_id,pricing_resource_id,start_at,end_at,buffer_mins', { count: 'exact' }).in('status', ['confirmed', 'pending_payment'])
-    .gte('end_at', new Date(midnight - 2 * 86400000).toISOString()).lte('start_at', new Date(midnight + 2 * 86400000).toISOString()).limit(5001));
+    .gte('end_at', new Date(midnight - 2 * 86400000).toISOString()).lte('start_at', new Date(endMidnight + 2 * 86400000).toISOString()).limit(5001));
   if (existing.length > 5000) throw new QuoteError('Availability could not be verified', 503);
   return existing;
 }
@@ -58,9 +59,17 @@ export async function authoritativeQuote(input: QuoteInput, snapshot?: Awaited<R
   let unavailable: unknown;
   for (const lane of lanes.sort((a, b) => a.id.localeCompare(b.id))) {
     try {
-      const laneQuote = quoteResource(input, config(lane));
+      const laneConfig = config(lane);
+      const laneQuote = quoteResource(input, laneConfig);
       const service = serviceResources?.[0] ?? lane;
-      const quote = service.id === lane.id ? laneQuote : quoteResource(input, config(service));
+      const serviceConfig = config(service);
+      // Every bookable service occupies one of the four physical lanes. The
+      // lane is therefore the sole source of opening hours and slot cadence;
+      // a service resource contributes pricing and equipment constraints.
+      const quote = service.id === lane.id ? laneQuote : quoteResource(input, {
+        ...serviceConfig,
+        rules: laneConfig.rules,
+      });
       return { ...quote, resourceId: lane.id as string, resourceName: lane.name as string, pricingResourceId: service.id as string, bufferMinutes: Math.max(quote.bufferMinutes, laneQuote.bufferMinutes), configuration };
     } catch (error) { unavailable = error; }
   }

@@ -21,7 +21,7 @@ function load(file,deps){const m={exports:{}};new Function('require','module','e
   'next/server':{NextResponse:{json:(body,init)=>({body,status:init?.status??200,cookies:{set(){}}})}},
   '@/lib/services/supabase':{supabaseAdmin:db},
   '@/lib/services/stripe':{paymentsEnabled:true},
-  '@/lib/services/checkout-attempts':{startPersistedCheckout:async params=>{
+  '@/lib/services/checkout-attempts':{checkoutAppUrl:()=> 'http://127.0.0.1:3001',startPersistedCheckout:async params=>{
    if(!checkouts.has(params.bookingId)){checkouts.set(params.bookingId,{sessionId:'cs_'+params.bookingId,url:'https://checkout.stripe.com/'+params.bookingId});stripeCreates++;}
    if(failCheckout)throw Error('Unknown outcome');return checkouts.get(params.bookingId);
   }},

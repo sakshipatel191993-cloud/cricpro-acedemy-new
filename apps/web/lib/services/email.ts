@@ -75,6 +75,8 @@ export interface BookingEmailData {
   payment?: VerifiedPayment
   coupon_snapshot?: CouponSnapshot | null
   quote_id?: string | null
+  block_session_count?: number
+  block_schedule?: string
 }
 
 function escapeHtml(value: string): string {
@@ -128,7 +130,11 @@ function bookingConfirmationHtml(b: BookingEmailData) {
       escapeHtml(b.resource_name),
     ])
   }
-  rows.push(["Date", date], ["Time", time])
+  if (b.block_schedule) {
+    rows.push(["Sessions", String(b.block_session_count ?? "")], ["Schedule", escapeHtml(b.block_schedule)])
+  } else {
+    rows.push(["Date", date], ["Time", time])
+  }
   if (b.player_count) {
     rows.push([
       "Players",
@@ -277,11 +283,17 @@ function withBookingAccess(html: string, reference: string) {
 }
 
 export async function sendBookingConfirmation(booking: BookingEmailData, outboxId?: string) {
+  const details: Array<[string, string]> = [
+    ...couponRows(booking.coupon_snapshot),
+    ...(booking.block_schedule
+      ? [["Sessions", String(booking.block_session_count ?? "")], ["Schedule", booking.block_schedule]] as Array<[string, string]>
+      : [["Date", booking.booking_date], ["Time", `${formatTime(booking.start_at, booking.quote_id)}${booking.end_at ? ` - ${formatTime(booking.end_at, booking.quote_id)}` : ""}`]] as Array<[string, string]>),
+    ...(booking.resource_name ? [["Facility", booking.resource_name] as [string, string]] : []),
+  ];
   const attachments = await bookingAttachments({
     reference: booking.booking_reference, customer: booking.customer_name, email: booking.customer_email,
     service: titleCase(booking.service_type), payment: booking.payment,
-    details: [...couponRows(booking.coupon_snapshot), ["Date", booking.booking_date], ["Time", `${formatTime(booking.start_at, booking.quote_id)}${booking.end_at ? ` - ${formatTime(booking.end_at, booking.quote_id)}` : ""}`],
-      ...(booking.resource_name ? [["Facility", booking.resource_name] as [string, string]] : [])],
+    details,
   })
   return send(
     booking.customer_email,
@@ -300,20 +312,27 @@ export async function sendAdminBookingNotification(booking: {
   amount: string
   customer_name: string
   customer_email: string
+  resource_name?: string
+  block_session_count?: number
+  block_schedule?: string
 }, outboxId?: string) {
   const service = booking.service_type
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase())
+  const rows: Array<[string, string]> = [
+    ["Reference", booking.booking_reference], ["Service", service],
+    ["Customer", booking.customer_name], ["Email", booking.customer_email],
+    ...(booking.resource_name ? [["Facility", booking.resource_name] as [string, string]] : []),
+    ...(booking.block_schedule
+      ? [["Sessions", String(booking.block_session_count ?? "")], ["Schedule", booking.block_schedule]] as Array<[string, string]>
+      : [["Date", booking.booking_date], ["Start time", formatTime(booking.start_at, booking.quote_id)]] as Array<[string, string]>),
+    ...couponRows(booking.coupon_snapshot),
+    ["Amount", `£${Number(booking.amount).toFixed(2)}`],
+  ];
   return send(
     ADMIN_EMAIL,
     `New Booking: ${booking.booking_reference} – ${service}`,
-    brandedEmail("New Booking Received", "A new booking has been received. The customer and session details are below.", [
-      ["Reference", booking.booking_reference], ["Service", service],
-      ["Customer", booking.customer_name], ["Email", booking.customer_email],
-      ["Date", booking.booking_date], ["Start time", formatTime(booking.start_at, booking.quote_id)],
-      ...couponRows(booking.coupon_snapshot),
-      ["Amount", `£${Number(booking.amount).toFixed(2)}`],
-    ], '<p style="margin:24px 0 0;">Reply to this email to contact the customer.</p>'),
+    brandedEmail("New Booking Received", "A new booking has been received. The customer and session details are below.", rows, '<p style="margin:24px 0 0;">Reply to this email to contact the customer.</p>'),
     booking.customer_email, undefined, outboxId
   )
 }

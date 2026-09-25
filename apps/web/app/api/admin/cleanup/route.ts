@@ -10,6 +10,7 @@ export async function POST() {
       .from('bookings')
       .update({ status: 'cancelled', payment_status: 'failed' })
       .eq('status', 'pending_payment')
+      .is('block_booking_id', null)
       .lt('expires_at', cutoff)
       .select('id, booking_reference');
 
@@ -32,6 +33,7 @@ export async function GET() {
       .from('bookings')
       .select('id, booking_reference, expires_at, created_at')
       .eq('status', 'pending_payment')
+      .is('block_booking_id', null)
       .lt('expires_at', cutoff);
 
     if (error) throw error;

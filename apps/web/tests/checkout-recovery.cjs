@@ -19,7 +19,11 @@ function load(file,deps) { const m={exports:{}}; new Function('require','module'
    '@/lib/services/stripe':{createCheckoutSession:async p=>{events.push('stripe');creates++;assert.equal(p.expiresAt,params.expiresAt);if(failStripe)throw Error('timeout unknown outcome');return {sessionId:'cs1',url:session.url}},getStripe:()=>({checkout:{sessions:{retrieve:async()=>session}}})},
    '@/lib/services/confirm-booking':{confirmBooking:async()=>{confirmed++}},
    '@/lib/services/confirm-group-booking':{confirmGroupBooking:async()=>{confirmed++}},
+   '@/lib/services/block-bookings':{confirmBlockBooking:async()=>{confirmed++},expireBlockBooking:async()=>{expires++}},
  });
+ const priorNodeEnv=process.env.NODE_ENV;process.env.NODE_ENV='development';
+ assert.equal(helper.checkoutAppUrl({url:'http://127.0.0.1:3001/api/bookings'}),'http://127.0.0.1:3001');
+ if(priorNodeEnv===undefined)delete process.env.NODE_ENV;else process.env.NODE_ENV=priorNodeEnv;
  failInsert=true;await assert.rejects(()=>helper.startPersistedCheckout(params));assert.equal(creates,0);
  failInsert=false;failStripe=true;await assert.rejects(()=>helper.startPersistedCheckout(params));assert.equal(expires,0,'Unknown outcome must preserve inventory');
  failStripe=false;failSave=true;await assert.rejects(()=>helper.startPersistedCheckout(params));assert.equal(expires,0,'Failed persistence must not release inventory or return a URL');

@@ -29,6 +29,7 @@ import {
 import { Metadata } from "next"
 import { LOCATION } from "@/lib/location"
 import { OPERATING_HOURS } from "@/lib/hours"
+import { GOOGLE_REVIEWS_URL, INSTAGRAM_URL } from "@/lib/social-links"
 import { ContactForm } from "@/components/contact-form"
 
 export const metadata: Metadata = {
@@ -135,20 +136,19 @@ export default function ContactPage() {
               <Card className="border-primary/20 bg-primary/5">
                 <CardContent className="p-6">
                   <MessageCircle className="mb-3 h-8 w-8 text-primary" />
-                  <h3 className="mb-2 font-semibold">Quick Enquiries</h3>
+                  <h3 className="mb-2 font-semibold">Connect with us</h3>
                   <p className="mb-4 text-sm text-muted-foreground">
-                    For the fastest response, use the contact form or message us
-                    on social media.
+                    Ask us a question on WhatsApp or Instagram, or share your experience on Google.
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <Button size="sm" asChild>
                       <a href="https://wa.me/447728478115" target="_blank" rel="noopener noreferrer">Chat on WhatsApp</a>
                     </Button>
-                    <Button size="sm" variant="outline" disabled>
-                      Facebook (Soon)
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer">Instagram<span className="sr-only"> (opens in a new tab)</span></a>
                     </Button>
-                    <Button size="sm" variant="outline" disabled>
-                      Instagram (Soon)
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={GOOGLE_REVIEWS_URL} target="_blank" rel="noopener noreferrer">Google reviews<span className="sr-only"> (opens in a new tab)</span></a>
                     </Button>
                   </div>
                 </CardContent>

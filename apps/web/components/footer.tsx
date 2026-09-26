@@ -1,8 +1,9 @@
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowUpRight, Clock, Mail, MapPin, Phone } from "lucide-react"
+import { ArrowUpRight, Camera, Clock, Mail, MapPin, Phone, Star } from "lucide-react"
 import { LOCATION } from "@/lib/location"
 import { OPERATING_HOURS } from "@/lib/hours"
+import { GOOGLE_REVIEWS_URL, INSTAGRAM_URL } from "@/lib/social-links"
 
 const quickLinks = [
   { href: "/lane-hire", label: "Lane Hire" },
@@ -45,6 +46,14 @@ export function Footer() {
               <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-primary" />
               4 indoor lanes · Open 7 days
             </p>
+            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1">
+              <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-foreground/75 transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
+                <Camera aria-hidden="true" className="h-4 w-4" /> Instagram<span className="sr-only"> (opens in a new tab)</span>
+              </a>
+              <a href={GOOGLE_REVIEWS_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-foreground/75 transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
+                <Star aria-hidden="true" className="h-4 w-4" /> Google reviews<span className="sr-only"> (opens in a new tab)</span>
+              </a>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-x-6 gap-y-8">

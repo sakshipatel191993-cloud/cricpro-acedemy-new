@@ -1,6 +1,8 @@
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowUpRight, Camera, Clock, Mail, MapPin, Phone, Star } from "lucide-react"
+import { ArrowUpRight, Clock, Mail, MapPin, Phone } from "lucide-react"
+import { FcGoogle } from "react-icons/fc"
+import { SiInstagram } from "react-icons/si"
 import { LOCATION } from "@/lib/location"
 import { OPERATING_HOURS } from "@/lib/hours"
 import { GOOGLE_REVIEWS_URL, INSTAGRAM_URL } from "@/lib/social-links"
@@ -48,10 +50,10 @@ export function Footer() {
             </p>
             <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1">
               <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-foreground/75 transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
-                <Camera aria-hidden="true" className="h-4 w-4" /> Instagram<span className="sr-only"> (opens in a new tab)</span>
+                <SiInstagram aria-hidden="true" className="h-[18px] w-[18px] text-primary" /> Instagram<span className="sr-only"> (opens in a new tab)</span>
               </a>
               <a href={GOOGLE_REVIEWS_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-foreground/75 transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
-                <Star aria-hidden="true" className="h-4 w-4" /> Google reviews<span className="sr-only"> (opens in a new tab)</span>
+                <FcGoogle aria-hidden="true" className="h-[18px] w-[18px]" /> Google reviews<span className="sr-only"> (opens in a new tab)</span>
               </a>
             </div>
           </div>

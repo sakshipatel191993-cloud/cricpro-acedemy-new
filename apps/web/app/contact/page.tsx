@@ -27,6 +27,8 @@ import {
   MessageCircle,
 } from "lucide-react"
 import { Metadata } from "next"
+import { FcGoogle } from "react-icons/fc"
+import { SiInstagram } from "react-icons/si"
 import { LOCATION } from "@/lib/location"
 import { OPERATING_HOURS } from "@/lib/hours"
 import { GOOGLE_REVIEWS_URL, INSTAGRAM_URL } from "@/lib/social-links"
@@ -145,10 +147,10 @@ export default function ContactPage() {
                       <a href="https://wa.me/447728478115" target="_blank" rel="noopener noreferrer">Chat on WhatsApp</a>
                     </Button>
                     <Button size="sm" variant="outline" asChild>
-                      <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer">Instagram<span className="sr-only"> (opens in a new tab)</span></a>
+                      <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer"><SiInstagram aria-hidden="true" className="text-primary" />Instagram<span className="sr-only"> (opens in a new tab)</span></a>
                     </Button>
                     <Button size="sm" variant="outline" asChild>
-                      <a href={GOOGLE_REVIEWS_URL} target="_blank" rel="noopener noreferrer">Google reviews<span className="sr-only"> (opens in a new tab)</span></a>
+                      <a href={GOOGLE_REVIEWS_URL} target="_blank" rel="noopener noreferrer"><FcGoogle aria-hidden="true" />Google reviews<span className="sr-only"> (opens in a new tab)</span></a>
                     </Button>
                   </div>
                 </CardContent>

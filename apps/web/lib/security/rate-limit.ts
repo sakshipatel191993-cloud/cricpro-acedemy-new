@@ -12,6 +12,7 @@ export const RATE_POLICIES = {
   privateRead: { ip: { limit: 180, windowMs: minute }, subject: { limit: 60, windowMs: minute }, readOnly: true },
   publicRead: { ip: { limit: 60, windowMs: minute }, readOnly: true },
   quote: { ip: { limit: 60, windowMs: minute }, readOnly: true },
+  analytics: { ip: { limit: 60, windowMs: minute }, readOnly: true },
 } satisfies Record<string, { ip: Rule; subject?: Rule; spacing?: boolean; readOnly?: boolean }>;
 export type RatePolicy = keyof typeof RATE_POLICIES;
 type Bucket = Rule & { key: string };

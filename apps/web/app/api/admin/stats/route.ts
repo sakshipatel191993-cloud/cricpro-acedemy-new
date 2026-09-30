@@ -50,9 +50,15 @@ export async function GET(request: NextRequest) {
       .gte('created_at', startDateStr);
 
     if (revenueError || groupRevenueError) throw new Error('Revenue data unavailable');
+    const londonNoon = new Date(`${londonDate(new Date())}T12:00:00Z`).getTime();
     const dailyActivity = Array.from({ length: 7 }, (_, index) => ({
-      date: londonDate(new Date(Date.now() - (6 - index) * 86400000)), bookings: 0, revenue: 0,
+      date: new Date(londonNoon - (6 - index) * 86400000).toISOString().slice(0, 10), bookings: 0, revenue: 0,
     }));
+    const visitCounts = await Promise.all(dailyActivity.map(day =>
+      supabaseAdmin.from('website_visits').select('session_id', { count: 'exact', head: true }).eq('visit_date', day.date)
+    ));
+    if (visitCounts.some(result => result.error)) throw new Error('Visit data unavailable');
+    const dailyVisits = dailyActivity.map((day, index) => ({ date: day.date, visits: visitCounts[index]?.count ?? 0 }));
     const dailyMap = new Map(dailyActivity.map(day => [day.date, day]));
     for (const row of [...(revenueData ?? []), ...(groupRevenueData ?? [])]) {
       const day = dailyMap.get(londonDate(row.created_at));
@@ -112,9 +118,11 @@ export async function GET(request: NextRequest) {
         newInquiries: newInquiries || 0,
         totalGroupBookings: totalGroupBookings || 0,
         totalRevenue: totalRevenue.toFixed(2),
+        visitsToday: dailyVisits.at(-1)?.visits ?? 0,
         period
       },
       dailyActivity,
+      dailyVisits,
       todaysBookings: todaysBookings || [],
       upcomingBookings: upcomingBookings || [],
       resourceUtilization

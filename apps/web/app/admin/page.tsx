@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { ArrowUpRight, CalendarDays, CheckCircle2, Clock3, MessageSquare, PoundSterling, Users } from 'lucide-react';
+import { ArrowUpRight, CalendarDays, CheckCircle2, Clock3, Eye, MessageSquare, PoundSterling, Users } from 'lucide-react';
 
 type Stats = {
   totalBookings: number; confirmedBookings: number; pendingBookings: number;
   totalInquiries: number; newInquiries: number; totalGroupBookings: number; totalRevenue: string;
+  visitsToday: number;
 };
 type Booking = {
   id: string; booking_reference: string; customer_name: string; start_at: string; end_at: string;
@@ -15,7 +16,8 @@ type Booking = {
 };
 type Resource = { id: string; name: string; type: string; active: boolean; bookings: number };
 type Day = { date: string; bookings: number; revenue: number };
-type DashboardData = { stats: Stats; dailyActivity: Day[]; todaysBookings: Booking[]; upcomingBookings: Booking[]; resourceUtilization: Resource[] };
+type VisitDay = { date: string; visits: number };
+type DashboardData = { stats: Stats; dailyActivity: Day[]; dailyVisits: VisitDay[]; todaysBookings: Booking[]; upcomingBookings: Booking[]; resourceUtilization: Resource[] };
 
 const money = (amount: string | number) => new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 2 }).format(Number(amount));
 const date = (value: string) => new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', day: 'numeric', month: 'short' }).format(new Date(value));
@@ -51,29 +53,38 @@ export default function AdminDashboard() {
   }, [reload]);
 
   if (error) return <div role="alert" className="mx-auto max-w-xl rounded-xl border border-border bg-card p-6 text-center"><h1 className="text-xl font-semibold">Dashboard unavailable</h1><p className="mt-2 text-sm text-muted-foreground">{error}</p><div className="mt-5 flex justify-center gap-3"><button className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground" onClick={() => { setError(null); setReload(value => value + 1); }}>Try again</button><Link href="/admin/login" className="rounded-md border border-border px-4 py-2 font-medium">Sign in</Link></div></div>;
-  if (!data) return <div role="status" className="space-y-5"><div className="h-9 w-48 animate-pulse rounded bg-muted" /><div className="grid grid-cols-2 gap-3 md:grid-cols-4">{Array.from({ length: 4 }, (_, i) => <div key={i} className="h-28 animate-pulse rounded-xl bg-muted" />)}</div><div className="h-64 animate-pulse rounded-xl bg-muted" /><span className="sr-only">Loading dashboard</span></div>;
+  if (!data) return <div role="status" className="space-y-5"><div className="h-9 w-48 animate-pulse rounded bg-muted" /><div className="grid grid-cols-2 gap-3 lg:grid-cols-5">{Array.from({ length: 5 }, (_, i) => <div key={i} className={`h-28 animate-pulse rounded-xl bg-muted ${i === 0 ? 'col-span-2 lg:col-span-1' : ''}`} />)}</div><div className="h-64 animate-pulse rounded-xl bg-muted" /><span className="sr-only">Loading dashboard</span></div>;
 
-  const { stats, dailyActivity, todaysBookings, upcomingBookings, resourceUtilization } = data;
+  const { stats, dailyActivity, dailyVisits, todaysBookings, upcomingBookings, resourceUtilization } = data;
   const metrics = [
+    { label: 'Visits today', value: stats.visitsToday.toLocaleString('en-GB'), detail: 'Anonymous site sessions · London time', icon: Eye, feature: true },
     { label: 'Paid revenue', value: money(stats.totalRevenue), detail: 'Last 30 days', icon: PoundSterling, feature: true },
     { label: 'Confirmed', value: stats.confirmedBookings.toLocaleString('en-GB'), detail: 'Resource bookings · all time', icon: CheckCircle2 },
     { label: 'Pending', value: stats.pendingBookings.toLocaleString('en-GB'), detail: 'Awaiting payment', icon: Clock3 },
     { label: 'New enquiries', value: stats.newInquiries.toLocaleString('en-GB'), detail: `${stats.totalInquiries} total`, icon: MessageSquare },
   ];
   const chartDays = dailyActivity.map(day => ({ ...day, label: new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: 'UTC' }).format(new Date(`${day.date}T12:00:00Z`)) }));
+  const visitChartDays = dailyVisits.map(day => ({ ...day, label: new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: 'UTC' }).format(new Date(`${day.date}T12:00:00Z`)) }));
   const chartResources = resourceUtilization.filter(resource => resource.active).sort((a, b) => b.bookings - a.bookings).slice(0, 6);
 
   return <div className="mx-auto max-w-7xl space-y-6 pb-10 sm:space-y-8">
     <header className="flex flex-wrap items-end justify-between gap-3">
-      <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Centre operations</p><h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Overview</h1><p className="mt-2 text-sm text-muted-foreground">Bookings, revenue and the next sessions at a glance.</p></div>
+      <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Centre operations</p><h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Overview</h1><p className="mt-2 text-sm text-muted-foreground">Site visits, bookings, revenue and the next sessions at a glance.</p></div>
       <Link href="/admin/bookings" className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border px-4 text-sm font-semibold hover:bg-muted">Manage bookings <ArrowUpRight className="h-4 w-4" /></Link>
     </header>
 
-    <section aria-label="Key figures" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      {metrics.map(metric => <div key={metric.label} className={`min-w-0 rounded-xl border p-4 sm:p-5 ${metric.feature ? 'border-primary/35 bg-primary/10' : 'border-border bg-card'}`}>
+    <section aria-label="Key figures" className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      {metrics.map((metric, index) => <div key={metric.label} className={`min-w-0 rounded-xl border p-4 sm:p-5 ${index === 0 ? 'col-span-2 lg:col-span-1' : ''} ${metric.feature ? 'border-primary/35 bg-primary/10' : 'border-border bg-card'}`}>
         <div className="flex items-center justify-between gap-2"><span className="text-xs font-medium text-muted-foreground sm:text-sm">{metric.label}</span><metric.icon className="h-4 w-4 shrink-0 text-primary" /></div>
         <p className="mt-4 break-words text-2xl font-bold tracking-tight tabular-nums sm:text-3xl">{metric.value}</p><p className="mt-1 text-xs text-muted-foreground">{metric.detail}</p>
       </div>)}
+    </section>
+
+    <section aria-labelledby="visits-title" className="min-w-0 rounded-xl border border-border bg-card p-4 sm:p-6">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3"><div><h2 id="visits-title" className="text-lg font-semibold tracking-tight">Daily site visits</h2><p className="text-sm text-muted-foreground">Anonymous browser sessions · last 7 days · Europe/London</p></div><p className="text-xs text-muted-foreground">Tracking begins when this feature is enabled</p></div>
+      <div role="img" aria-label={`Daily site visits: ${dailyVisits.map(day => `${day.date}: ${day.visits}`).join(', ')}`} className="h-56 w-full min-w-0 sm:h-64">
+        <ResponsiveContainer width="100%" height="100%"><BarChart data={visitChartDays} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}><CartesianGrid vertical={false} stroke="var(--border)" strokeOpacity={0.6} /><XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} /><Tooltip contentStyle={{ background: 'var(--card)', color: 'var(--foreground)', border: '1px solid var(--border)', borderRadius: 8 }} formatter={(value) => [`${value} visits`, 'Visits']} /><Bar dataKey="visits" fill="var(--primary)" radius={[4, 4, 0, 0]} maxBarSize={48} /></BarChart></ResponsiveContainer>
+      </div>
     </section>
 
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">

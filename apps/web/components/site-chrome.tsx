@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { StickyCTA } from "@/components/sticky-cta";
+import { VisitTracker } from "@/components/visit-tracker";
 
 /**
  * Wraps the public site chrome (header, footer, sticky CTA).
@@ -20,6 +21,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <VisitTracker />
       <Header />
       {children}
       <Footer />

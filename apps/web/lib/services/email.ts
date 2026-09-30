@@ -21,9 +21,10 @@ async function send(
   html: string,
   replyTo: string = ADMIN_EMAIL,
   attachments?: Awaited<ReturnType<typeof bookingAttachments>>,
-  outboxId?: string
+  outboxId?: string,
+  outboxTable: 'booking_notification_outbox' | 'booking_cancellation_outbox' = 'booking_notification_outbox'
 ): Promise<boolean> {
-  if (outboxId) return sendDurableEmail(outboxId, { from: FROM, to, subject, html, replyTo, attachments })
+  if (outboxId) return sendDurableEmail(outboxId, { from: FROM, to, subject, html, replyTo, attachments }, outboxTable)
   if (!resend) {
     console.warn(
       `[EMAIL] RESEND_API_KEY not set — not sending. To: ${to} | Subject: ${subject}`
@@ -384,4 +385,45 @@ export async function sendGroupSessionConfirmation(
     `Booking Confirmed – ${booking.booking_reference} | Cricpro Centre of Excellence`,
     withBookingAccess(groupSessionConfirmationHtml(booking, session),booking.booking_reference), ADMIN_EMAIL, attachments, outboxId
   )
+}
+
+export async function sendBookingCancellationNotice(data: {
+  recipient: string
+  name: string
+  reference: string
+  service: string
+  schedule?: string
+  amount: string
+  paymentStatus: string
+  refundStatus: string | null
+  eventType: 'cancelled' | 'refund_succeeded' | 'refund_failed'
+}, outboxId: string) {
+  const refunded = data.eventType === 'refund_succeeded' || data.refundStatus === 'succeeded'
+  const failed = data.eventType === 'refund_failed' || data.refundStatus === 'failed' || data.refundStatus === 'canceled'
+  const processing = !refunded && !failed && data.refundStatus === 'pending'
+  const title = data.eventType === 'refund_succeeded' ? 'Your refund is complete'
+    : failed ? 'Refund update for your cancelled booking'
+    : refunded ? 'Booking cancelled and refunded'
+    : processing ? 'Booking cancelled; refund requested'
+    : 'Booking cancelled'
+  const intro = data.eventType === 'refund_succeeded'
+    ? `Hi ${data.name}, your refund for the cancelled booking has been issued to the original payment method. Your bank may take additional time to show it.`
+    : failed
+      ? `Hi ${data.name}, your booking is cancelled, but we could not complete the refund. Please reply to this email so we can help.`
+      : refunded
+        ? `Hi ${data.name}, your booking has been cancelled and a full refund has been issued to the original payment method. Your bank may take additional time to show it.`
+        : processing
+          ? `Hi ${data.name}, your booking has been cancelled and a full refund has been requested. We will email you when Stripe confirms it.`
+          : data.paymentStatus === 'paid'
+            ? `Hi ${data.name}, your booking has been cancelled. No refund has been issued. Please reply to this email if you need help.`
+            : `Hi ${data.name}, your booking has been cancelled. Please reply to this email if you need help.`
+  const rows: Array<[string, string]> = [
+    ['Reference', data.reference], ['Service', data.service],
+    ...(data.schedule ? [['Schedule', data.schedule] as [string, string]] : []),
+    ...(refunded || processing || failed ? [['Refund amount', `£${Number(data.amount).toFixed(2)}`] as [string, string]] : []),
+    ['Refund status', refunded ? 'Issued' : failed ? 'Needs attention' : processing ? 'Processing' : 'No refund issued'],
+  ]
+  return send(data.recipient, `${title} – ${data.reference} | Cricpro Centre of Excellence`,
+    brandedEmail(title, intro, rows, '<p style="margin:24px 0 0;">Questions? Reply to this email and our team will help.</p>'),
+    ADMIN_EMAIL, undefined, outboxId, 'booking_cancellation_outbox')
 }

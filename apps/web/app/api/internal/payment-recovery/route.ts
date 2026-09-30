@@ -1,6 +1,8 @@
 import { timingSafeEqual } from 'node:crypto';
 import { reconcileCheckoutAttempts } from '@/lib/services/checkout-attempts';
 import { dispatchBookingNotifications } from '@/lib/services/booking-outbox';
+import { dispatchCancellationNotifications } from '@/lib/services/cancellation-outbox';
+import { reconcilePendingRefunds } from '@/lib/services/refund-recovery';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -16,8 +18,10 @@ export async function GET(request: Request) {
   }
   try {
     const checkouts = await reconcileCheckoutAttempts(20);
+    const refunds = await reconcilePendingRefunds(10);
     const notifications = await dispatchBookingNotifications(10);
-    return Response.json({ success: true, checkouts, notifications }, { headers });
+    const cancellationNotifications = await dispatchCancellationNotifications(10);
+    return Response.json({ success: true, checkouts, refunds, notifications, cancellationNotifications }, { headers });
   } catch {
     console.error('security.payment_recovery_failed');
     return Response.json({ success: false, error: 'Recovery needs operator attention' }, { status: 503, headers });

@@ -22,6 +22,8 @@ interface GroupSession {
 interface GroupSessionBooking {
   status: string;
   payment_status: string;
+  refund_status?: string | null;
+  amount?: string | null;
   id: string;
   session_id: string;
   player_name: string;
@@ -53,6 +55,7 @@ export default function AdminSessionsPage({ masterclass = false }: { masterclass
   }
   const [sessions, setSessions] = useState<GroupSession[]>([]);
   const [bookings, setBookings] = useState<GroupSessionBooking[]>([]);
+  const [busyBookingId, setBusyBookingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -170,19 +173,22 @@ export default function AdminSessionsPage({ masterclass = false }: { masterclass
     }
   }
 
-  async function deleteBooking(id: string) {
-    if (!confirm('Remove this player from the session? This does not refund any payment.')) return;
+  async function cancelBooking(booking: GroupSessionBooking, refund: boolean) {
+    if (!confirm(refund ? `Cancel this place and request a full £${booking.amount} refund?` : `Cancel this place${booking.payment_status === 'paid' ? ' without refunding the payment' : ''}?`)) return;
+    setBusyBookingId(booking.id);
     try {
-      const res = await fetch(`/api/admin/group-session-bookings?id=${id}`, { method: 'DELETE' });
+      const res = await fetch('/api/admin/cancel-booking', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'group', id: booking.id, refund }) });
       const data = await res.json();
       if (data.success) {
-        setBookings(bookings.filter(b => b.id !== id));
-        // Refresh sessions to update player counts
+        if (refund && ['failed', 'canceled'].includes(data.booking.refund_status)) toast.error(`Place cancelled, but the refund ${data.booking.refund_status}. Review it in Stripe.`);
+        else toast.success(refund ? data.booking.refund_status === 'succeeded' ? 'Place cancelled and refund succeeded' : 'Place cancelled; refund is processing' : 'Place cancelled');
+        fetchBookings();
         fetchSessions();
-      } else { toast.error(data.error || 'Unable to remove booking'); }
+      } else { toast.error(data.error || 'Unable to cancel booking'); }
     } catch (error) {
-      console.error('Failed to delete booking:', error);
-    }
+      console.error('Failed to cancel booking:', error);
+      toast.error('Unable to cancel booking');
+    } finally { setBusyBookingId(null); }
   }
 
   function editSession(session: GroupSession) {
@@ -471,7 +477,7 @@ export default function AdminSessionsPage({ masterclass = false }: { masterclass
                       <tr key={booking.id}>
                         <td className="px-4 py-3">
                           <div className="text-foreground">{booking.player_name}</div>
-                          <div className="text-xs text-muted-foreground">{booking.status === "pending_payment" ? "Awaiting payment" : booking.payment_status === "paid" ? "Paid · Confirmed" : "Confirmed · Payment unrecorded"}</div>
+                          <div className="text-xs text-muted-foreground">{booking.refund_status ? `Cancelled · Refund ${booking.refund_status}` : booking.status === 'cancelled' ? `Cancelled · ${booking.payment_status}` : booking.status === "pending_payment" ? "Awaiting payment" : booking.payment_status === "paid" ? "Paid · Confirmed" : "Confirmed · Payment unrecorded"}</div>
                           {booking.player_age && (
                             <div className="text-xs text-muted-foreground">Age: {booking.player_age}</div>
                           )}
@@ -485,12 +491,8 @@ export default function AdminSessionsPage({ masterclass = false }: { masterclass
                           {booking.session?.title}
                         </td>
                         <td className="px-4 py-3">
-                          <button
-                            onClick={() => deleteBooking(booking.id)}
-                            className="text-destructive hover:underline text-sm"
-                          >
-                            Remove
-                          </button>
+                          {booking.status === 'confirmed' && <button disabled={busyBookingId === booking.id} onClick={() => cancelBooking(booking, false)} className="mr-3 text-destructive hover:underline text-sm disabled:opacity-50">Cancel</button>}
+                          {((booking.status === 'confirmed' || booking.status === 'cancelled') && booking.payment_status === 'paid' || booking.refund_status) && <button disabled={busyBookingId === booking.id} onClick={() => cancelBooking(booking, true)} className="text-primary hover:underline text-sm disabled:opacity-50">{booking.refund_status ? 'Refresh refund' : 'Cancel & refund'}</button>}
                         </td>
                       </tr>
                     ))}

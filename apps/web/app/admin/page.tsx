@@ -1,197 +1,98 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@workspace/ui/components/card';
-import { Badge } from '@workspace/ui/components/badge';
-import { CalendarDays, CheckCircle, Clock, MessageSquare, BellRing, PoundSterling } from 'lucide-react';
+import Link from 'next/link';
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { ArrowUpRight, CalendarDays, CheckCircle2, Clock3, MessageSquare, PoundSterling, Users } from 'lucide-react';
 
-interface Stats {
-  totalBookings: number;
-  confirmedBookings: number;
-  pendingBookings: number;
-  totalInquiries: number;
-  newInquiries: number;
-  totalRevenue: string;
-}
+type Stats = {
+  totalBookings: number; confirmedBookings: number; pendingBookings: number;
+  totalInquiries: number; newInquiries: number; totalGroupBookings: number; totalRevenue: string;
+};
+type Booking = {
+  id: string; booking_reference: string; customer_name: string; start_at: string; end_at: string;
+  status: string; amount: string; resource: { name: string } | { name: string }[] | null;
+};
+type Resource = { id: string; name: string; type: string; active: boolean; bookings: number };
+type Day = { date: string; bookings: number; revenue: number };
+type DashboardData = { stats: Stats; dailyActivity: Day[]; todaysBookings: Booking[]; upcomingBookings: Booking[]; resourceUtilization: Resource[] };
 
-interface Booking {
-  id: string;
-  booking_reference: string;
-  customer_name: string;
-  customer_email: string;
-  start_at: string;
-  end_at: string;
-  status: string;
-  amount: string;
-  resource: { name: string; type: string };
-}
+const money = (amount: string | number) => new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 2 }).format(Number(amount));
+const date = (value: string) => new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', day: 'numeric', month: 'short' }).format(new Date(value));
+const time = (value: string) => new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
+const resourceName = (booking: Booking) => Array.isArray(booking.resource) ? booking.resource[0]?.name ?? 'Lane' : booking.resource?.name ?? 'Lane';
 
-interface ResourceUtil {
-  id: string;
-  name: string;
-  type: string;
-  active: boolean;
-  bookings: number;
-}
-
-const statCards = [
-  { key: 'totalBookings', label: 'Total Bookings', icon: CalendarDays, format: (v: number) => v },
-  { key: 'confirmedBookings', label: 'Confirmed', icon: CheckCircle, format: (v: number) => v },
-  { key: 'pendingBookings', label: 'Pending', icon: Clock, format: (v: number) => v },
-  { key: 'totalInquiries', label: 'Total Inquiries', icon: MessageSquare, format: (v: number) => v },
-  { key: 'newInquiries', label: 'New Inquiries', icon: BellRing, format: (v: number) => v },
-  { key: 'totalRevenue', label: 'Revenue (30d)', icon: PoundSterling, format: (v: number | string) => `£${v}` },
-];
-
-function statusBadge(status: string) {
-  if (status === 'confirmed') return <Badge className="bg-green-500/15 text-green-700 dark:text-green-400 border-green-200 dark:border-green-500/30 hover:bg-green-500/15">{status}</Badge>;
-  if (status === 'cancelled') return <Badge variant="destructive">{status}</Badge>;
-  return <Badge variant="secondary">{status}</Badge>;
+function BookingRow({ booking, showDate = false }: { booking: Booking; showDate?: boolean }) {
+  return <li className="flex min-w-0 items-start justify-between gap-3 border-b border-border/60 py-4 last:border-0">
+    <div className="min-w-0">
+      <p className="truncate font-semibold text-foreground">{booking.customer_name}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{resourceName(booking)} · {showDate && `${date(booking.start_at)} · `}{time(booking.start_at)}–{time(booking.end_at)}</p>
+      <p className="mt-1 font-mono text-xs text-muted-foreground">{booking.booking_reference}</p>
+    </div>
+    <span className="shrink-0 font-semibold tabular-nums">{money(booking.amount)}</span>
+  </li>;
 }
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [todaysBookings, setTodaysBookings] = useState<Booking[]>([]);
-  const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
-  const [resources, setResources] = useState<ResourceUtil[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
-    fetch('/api/admin/stats')
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          setStats(data.stats);
-          setTodaysBookings(data.todaysBookings || []);
-          setUpcomingBookings(data.upcomingBookings || []);
-          setResources(data.resourceUtilization || []);
-        }
+    const controller = new AbortController();
+    fetch('/api/admin/stats', { signal: controller.signal, cache: 'no-store' })
+      .then(async response => {
+        if (!response.ok) throw new Error(response.status === 401 ? 'Your admin session has expired. Sign in again.' : 'Dashboard data is unavailable.');
+        return response.json();
       })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
+      .then(result => { if (!result.success) throw new Error('Dashboard data is unavailable.'); setData(result); setError(null); })
+      .catch(cause => { if (cause.name !== 'AbortError') setError(cause.message); });
+    return () => controller.abort();
+  }, [reload]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
+  if (error) return <div role="alert" className="mx-auto max-w-xl rounded-xl border border-border bg-card p-6 text-center"><h1 className="text-xl font-semibold">Dashboard unavailable</h1><p className="mt-2 text-sm text-muted-foreground">{error}</p><div className="mt-5 flex justify-center gap-3"><button className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground" onClick={() => { setError(null); setReload(value => value + 1); }}>Try again</button><Link href="/admin/login" className="rounded-md border border-border px-4 py-2 font-medium">Sign in</Link></div></div>;
+  if (!data) return <div role="status" className="space-y-5"><div className="h-9 w-48 animate-pulse rounded bg-muted" /><div className="grid grid-cols-2 gap-3 md:grid-cols-4">{Array.from({ length: 4 }, (_, i) => <div key={i} className="h-28 animate-pulse rounded-xl bg-muted" />)}</div><div className="h-64 animate-pulse rounded-xl bg-muted" /><span className="sr-only">Loading dashboard</span></div>;
 
-  return (
-    <div className="max-w-7xl mx-auto space-y-8">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
+  const { stats, dailyActivity, todaysBookings, upcomingBookings, resourceUtilization } = data;
+  const metrics = [
+    { label: 'Paid revenue', value: money(stats.totalRevenue), detail: 'Last 30 days', icon: PoundSterling, feature: true },
+    { label: 'Confirmed', value: stats.confirmedBookings.toLocaleString('en-GB'), detail: 'Resource bookings · all time', icon: CheckCircle2 },
+    { label: 'Pending', value: stats.pendingBookings.toLocaleString('en-GB'), detail: 'Awaiting payment', icon: Clock3 },
+    { label: 'New enquiries', value: stats.newInquiries.toLocaleString('en-GB'), detail: `${stats.totalInquiries} total`, icon: MessageSquare },
+  ];
+  const chartDays = dailyActivity.map(day => ({ ...day, label: new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: 'UTC' }).format(new Date(`${day.date}T12:00:00Z`)) }));
+  const chartResources = resourceUtilization.filter(resource => resource.active).sort((a, b) => b.bookings - a.bookings).slice(0, 6);
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {statCards.map(({ key, label, icon: Icon, format }) => {
-          const raw = stats ? (stats as any)[key] : 0;
-          return (
-            <Card key={key} className="relative overflow-hidden">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs text-muted-foreground font-medium">{label}</p>
-                  <Icon className="h-4 w-4 text-primary/60" />
-                </div>
-                <p className="text-2xl font-bold">{format(raw)}</p>
-              </CardContent>
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary/30" />
-            </Card>
-          );
-        })}
-      </div>
+  return <div className="mx-auto max-w-7xl space-y-6 pb-10 sm:space-y-8">
+    <header className="flex flex-wrap items-end justify-between gap-3">
+      <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Centre operations</p><h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Overview</h1><p className="mt-2 text-sm text-muted-foreground">Bookings, revenue and the next sessions at a glance.</p></div>
+      <Link href="/admin/bookings" className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border px-4 text-sm font-semibold hover:bg-muted">Manage bookings <ArrowUpRight className="h-4 w-4" /></Link>
+    </header>
 
-      {/* Schedule + Resources */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Today's Schedule</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {todaysBookings.length === 0 ? (
-              <p className="text-muted-foreground text-sm text-center py-6">No bookings today</p>
-            ) : (
-              <div className="space-y-2">
-                {todaysBookings.map(b => (
-                  <div key={b.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/40">
-                    <div>
-                      <p className="font-medium text-sm">{b.resource.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(b.start_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} –{' '}
-                        {new Date(b.end_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
-                        {' · '}{b.customer_name}
-                      </p>
-                    </div>
-                    {statusBadge(b.status)}
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+    <section aria-label="Key figures" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {metrics.map(metric => <div key={metric.label} className={`min-w-0 rounded-xl border p-4 sm:p-5 ${metric.feature ? 'border-primary/35 bg-primary/10' : 'border-border bg-card'}`}>
+        <div className="flex items-center justify-between gap-2"><span className="text-xs font-medium text-muted-foreground sm:text-sm">{metric.label}</span><metric.icon className="h-4 w-4 shrink-0 text-primary" /></div>
+        <p className="mt-4 break-words text-2xl font-bold tracking-tight tabular-nums sm:text-3xl">{metric.value}</p><p className="mt-1 text-xs text-muted-foreground">{metric.detail}</p>
+      </div>)}
+    </section>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Resource Utilization</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {resources.map(r => (
-                <div key={r.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${r.active ? 'bg-green-500' : 'bg-muted-foreground/30'}`} />
-                    <span className="text-sm font-medium">{r.name}</span>
-                    <span className="text-xs text-muted-foreground capitalize">({r.type.replace('_', ' ')})</span>
-                  </div>
-                  <span className="text-sm text-muted-foreground">{r.bookings} bookings</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
+      <section aria-labelledby="activity-title" className="min-w-0 rounded-xl border border-border bg-card p-4 sm:p-6">
+        <div className="mb-5"><h2 id="activity-title" className="text-lg font-semibold tracking-tight">Paid bookings</h2><p className="text-sm text-muted-foreground">Confirmed bookings by creation date · last 7 days</p></div>
+        <div role="img" aria-label={`Paid bookings in the last seven days: ${dailyActivity.map(day => `${day.date}: ${day.bookings}`).join(', ')}`} className="h-56 w-full min-w-0 sm:h-64">
+          <ResponsiveContainer width="100%" height="100%"><AreaChart data={chartDays} margin={{ top: 12, right: 4, left: -25, bottom: 0 }}><CartesianGrid vertical={false} stroke="var(--border)" strokeOpacity={0.6} /><XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} /><Tooltip contentStyle={{ background: 'var(--card)', color: 'var(--foreground)', border: '1px solid var(--border)', borderRadius: 8 }} formatter={(value) => [`${value} bookings`, 'Paid']} /><Area type="monotone" dataKey="bookings" stroke="var(--primary)" fill="var(--primary)" fillOpacity={0.16} strokeWidth={2.5} dot={{ r: 3, fill: 'var(--primary)' }} /></AreaChart></ResponsiveContainer>
+        </div>
+      </section>
 
-      {/* Upcoming Bookings */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Upcoming Bookings (Next 7 Days)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {upcomingBookings.length === 0 ? (
-            <p className="text-muted-foreground text-sm text-center py-6">No upcoming bookings</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-2.5 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Reference</th>
-                    <th className="text-left py-2.5 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Customer</th>
-                    <th className="text-left py-2.5 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Resource</th>
-                    <th className="text-left py-2.5 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Date</th>
-                    <th className="text-left py-2.5 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Amount</th>
-                    <th className="text-left py-2.5 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {upcomingBookings.map(b => (
-                    <tr key={b.id} className="hover:bg-muted/40 transition-colors">
-                      <td className="py-3 px-3 font-mono font-medium text-xs">{b.booking_reference}</td>
-                      <td className="py-3 px-3 text-foreground">{b.customer_name}</td>
-                      <td className="py-3 px-3 text-muted-foreground">{b.resource?.name}</td>
-                      <td className="py-3 px-3 text-muted-foreground">
-                        {new Date(b.start_at).toLocaleDateString('en-GB', { timeZone: 'UTC' })}
-                      </td>
-                      <td className="py-3 px-3 font-medium">£{b.amount}</td>
-                      <td className="py-3 px-3">{statusBadge(b.status)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <section aria-labelledby="resources-title" className="min-w-0 rounded-xl border border-border bg-card p-4 sm:p-6">
+        <div className="mb-5"><h2 id="resources-title" className="text-lg font-semibold tracking-tight">Bookings by resource</h2><p className="text-sm text-muted-foreground">Confirmed sessions · last 30 days</p></div>
+        {chartResources.length ? <div role="img" aria-label={chartResources.map(resource => `${resource.name}: ${resource.bookings} bookings`).join(', ')} className="h-56 w-full min-w-0 sm:h-64"><ResponsiveContainer width="100%" height="100%"><BarChart data={chartResources} layout="vertical" margin={{ top: 2, right: 18, left: 0, bottom: 2 }}><CartesianGrid horizontal={false} stroke="var(--border)" strokeOpacity={0.6} /><XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} /><YAxis dataKey="name" type="category" width={92} tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} /><Tooltip contentStyle={{ background: 'var(--card)', color: 'var(--foreground)', border: '1px solid var(--border)', borderRadius: 8 }} formatter={(value) => [`${value} bookings`, 'Confirmed']} /><Bar dataKey="bookings" fill="var(--primary)" radius={[0, 4, 4, 0]} maxBarSize={20} /></BarChart></ResponsiveContainer></div> : <p className="py-16 text-center text-sm text-muted-foreground">No active resources yet.</p>}
+      </section>
     </div>
-  );
+
+    <div className="grid gap-4 xl:grid-cols-2">
+      <section aria-labelledby="today-title" className="min-w-0 rounded-xl border border-border bg-card p-4 sm:p-6"><div className="flex items-center justify-between gap-3"><div><h2 id="today-title" className="text-lg font-semibold tracking-tight">Today’s schedule</h2><p className="text-sm text-muted-foreground">{todaysBookings.length} confirmed resource bookings</p></div><CalendarDays className="h-5 w-5 text-primary" /></div>{todaysBookings.length ? <ul className="mt-3">{todaysBookings.map(booking => <BookingRow key={booking.id} booking={booking} />)}</ul> : <p className="mt-5 rounded-lg bg-muted/40 px-4 py-6 text-sm text-muted-foreground">No confirmed resource bookings today.</p>}</section>
+      <section aria-labelledby="upcoming-title" className="min-w-0 rounded-xl border border-border bg-card p-4 sm:p-6"><div className="flex items-center justify-between gap-3"><div><h2 id="upcoming-title" className="text-lg font-semibold tracking-tight">Coming up</h2><p className="text-sm text-muted-foreground">Next 7 days · first 10 resource bookings</p></div><Users className="h-5 w-5 text-primary" /></div>{upcomingBookings.length ? <ul className="mt-3">{upcomingBookings.map(booking => <BookingRow key={booking.id} booking={booking} showDate />)}</ul> : <p className="mt-5 rounded-lg bg-muted/40 px-4 py-6 text-sm text-muted-foreground">No upcoming confirmed resource bookings.</p>}</section>
+    </div>
+  </div>;
 }

@@ -20,6 +20,9 @@ export async function confirmGroupBooking(session: Stripe.Checkout.Session) {
     dispatchWhatsApp('group_session_bookings', booking.id);
     return booking;
   }
+  // A delayed duplicate checkout webhook must not restore an admin-cancelled
+  // place or retry indefinitely after the customer has been refunded.
+  if (booking.status === 'cancelled' && ['paid', 'refunded'].includes(booking.payment_status)) return booking;
   if (booking.status !== 'pending_payment') throw new Error('Booking is no longer pending payment');
 
   const { error: updateError } = await supabaseAdmin.rpc('confirm_booking_with_outbox', {

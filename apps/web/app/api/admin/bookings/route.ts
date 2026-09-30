@@ -66,6 +66,7 @@ export async function PATCH(request: NextRequest) {
     const { data: existing, error: readError } = await supabaseAdmin.from('bookings').select('block_booking_id').eq('id', id).single();
     if (readError) throw readError;
     if (existing.block_booking_id && (status || payment_status)) return NextResponse.json({ success: false, error: 'Block payment and reservation status must be managed together through payment reconciliation.' }, { status: 409 });
+    if (status || payment_status) return NextResponse.json({ success: false, error: 'Use the booking cancellation and refund action to change financial status.' }, { status: 409 });
     if (status) updateData.status = status;
     if (payment_status) updateData.payment_status = payment_status;
     if (notes !== undefined) updateData.notes = notes;
@@ -101,11 +102,17 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    const { data: existing, error: lookupError } = await supabaseAdmin.from('bookings').select('payment_status').eq('id', id).single();
+    if (lookupError || !existing) return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 });
+    if (existing.payment_status === 'paid' || existing.payment_status === 'refunded') return NextResponse.json({ success: false, error: 'Paid bookings must be cancelled and retained for payment records.' }, { status: 409 });
+
     const { data, error } = await supabaseAdmin
       .from('bookings')
       .delete()
       .eq('id', id)
       .is('block_booking_id', null)
+      .neq('payment_status', 'paid')
+      .neq('payment_status', 'refunded')
       .select('id');
 
     if (error) throw error;

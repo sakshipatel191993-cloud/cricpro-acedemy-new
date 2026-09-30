@@ -34,6 +34,8 @@ export interface DbBooking {
   end_at: string;
   status: 'pending_payment' | 'confirmed' | 'cancelled' | 'completed' | 'expired' | 'refunded';
   payment_status: 'pending' | 'paid' | 'failed' | 'refunded';
+  stripe_refund_id?: string | null;
+  refund_status?: 'pending' | 'succeeded' | 'failed' | 'canceled' | null;
   amount: string;
   stripe_session_id: string | null;
   expires_at: string | null;
@@ -78,7 +80,9 @@ export interface DbGroupSession {
 export interface DbGroupSessionBooking {
   booking_reference: string;
   status: 'pending_payment' | 'confirmed' | 'expired' | 'cancelled';
-  payment_status: 'unpaid' | 'pending' | 'paid' | 'failed';
+  payment_status: 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded';
+  stripe_refund_id?: string | null;
+  refund_status?: 'pending' | 'succeeded' | 'failed' | 'canceled' | null;
   amount: string | null;
   stripe_session_id: string | null;
   expires_at: string | null;

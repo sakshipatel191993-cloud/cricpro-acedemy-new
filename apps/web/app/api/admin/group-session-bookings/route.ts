@@ -12,7 +12,6 @@ export async function GET(request: NextRequest) {
         *,
         session:group_sessions!inner(title, age_group, session_kind)
       `)
-      .neq('status', 'cancelled')
       .neq('status', 'expired')
       .eq('session.session_kind', searchParams.get('kind') === 'masterclass' ? 'masterclass' : 'group')
       .order('created_at', { ascending: false });
@@ -150,6 +149,8 @@ export async function DELETE(request: NextRequest) {
       .select('id, status').eq('id', id).single();
     if (lookupError || !booking) return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 });
     if (booking.status === 'pending_payment') return NextResponse.json({ success: false, error: 'A payment is in progress. Wait for checkout to complete or expire.' }, { status: 409 });
+    const { data: payment } = await supabaseAdmin.from('group_session_bookings').select('payment_status').eq('id', id).single();
+    if (payment?.payment_status === 'paid' || payment?.payment_status === 'refunded') return NextResponse.json({ success: false, error: 'Paid bookings must be cancelled and retained for payment records.' }, { status: 409 });
     const { error } = await supabaseAdmin.from('group_session_bookings')
       .update({ status: 'cancelled' }).eq('id', id).neq('status', 'pending_payment');
     if (error) throw error;

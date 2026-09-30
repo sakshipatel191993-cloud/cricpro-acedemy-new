@@ -93,13 +93,13 @@ export default function AdminInquiriesPage() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-foreground">Inquiries</h1>
         <div className="flex gap-2">
           <select
             value={typeFilter}
             onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-            className="border rounded-lg px-4 py-2 bg-background text-foreground"
+            className="min-h-11 w-full rounded-lg border bg-background px-4 py-2 text-foreground sm:w-auto"
           >
             <option value="">All Types</option>
             <option value="coaching">Coaching</option>
@@ -110,7 +110,7 @@ export default function AdminInquiriesPage() {
           <select
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="border rounded-lg px-4 py-2 bg-background text-foreground"
+            className="min-h-11 w-full rounded-lg border bg-background px-4 py-2 text-foreground sm:w-auto"
           >
             <option value="">All Statuses</option>
             <option value="new">New</option>
@@ -131,7 +131,10 @@ export default function AdminInquiriesPage() {
         </div>
       ) : (
         <>
-          <div className="bg-card rounded-lg shadow overflow-hidden">
+          <div className="space-y-3 md:hidden">
+            {inquiries.map(inquiry => <article key={inquiry.id} className="min-w-0 rounded-xl border border-border bg-card p-4"><div className="flex justify-between gap-3"><div className="min-w-0"><p className="truncate font-semibold">{inquiry.name}</p><p className="mt-1 text-xs text-muted-foreground">{typeLabels[inquiry.type]} · {new Date(inquiry.created_at).toLocaleDateString('en-GB')}</p></div><span className="text-xs font-medium capitalize text-primary">{inquiry.status}</span></div><p className="mt-3 truncate text-sm text-muted-foreground">{inquiry.email}</p><p className="mt-2 line-clamp-2 text-sm">{inquiry.message}</p><div className="mt-4 flex items-center gap-3 border-t border-border pt-3"><button onClick={() => setSelectedInquiry(inquiry)} className="min-h-11 flex-1 rounded-md border border-border text-sm font-semibold">View details</button><button onClick={() => deleteInquiry(inquiry.id)} className="min-h-11 px-3 text-sm font-semibold text-destructive">Delete</button></div></article>)}
+          </div>
+          <div className="hidden overflow-hidden rounded-lg bg-card shadow md:block">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-border">
                 <thead className="bg-muted">
@@ -215,8 +218,8 @@ export default function AdminInquiriesPage() {
 
       {/* Inquiry Detail Modal */}
       {selectedInquiry && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-card rounded-lg p-6 w-full max-w-lg">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4">
+          <div role="dialog" aria-modal="true" aria-label="Inquiry details" className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-xl bg-card p-5 sm:rounded-xl sm:p-6">
             <div className="flex justify-between items-start mb-4">
               <h2 className="text-xl font-semibold">Inquiry Details</h2>
               <button

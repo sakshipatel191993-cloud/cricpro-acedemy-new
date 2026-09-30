@@ -19,7 +19,7 @@ test('transactional templates are branded, escaped, and have correct reply routi
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
     exports, console: { log() {}, warn() {}, error() {} },
     process: { env: { RESEND_API_KEY: 'test', EMAIL_FROM: 'noreply@cricprocoe.com', ADMIN_EMAIL: 'info@cricprocoe.com' } },
-    require: (name) => name === 'resend' ? { Resend } : name.includes('coupon-summary') ? couponExports : name.includes('booking-documents') ? documentExports : location,
+    require: (name) => name === 'resend' ? { Resend } : name.includes('coupon-summary') ? couponExports : name.includes('booking-documents') ? documentExports : name.includes('outbox-delivery') ? { sendDurableEmail: async (_id, payload, table) => { assert.equal(table, 'booking_cancellation_outbox'); messages.push(payload); return true } } : location,
   })
   const inquiry = { name: '<script>Test</script>', email: 'customer@example.com', type: 'birthday_party', message: 'First line\nSecond <img src=x onerror=alert(1)>', phone: '' }
   await exports.sendInquiryConfirmation(inquiry)
@@ -75,4 +75,12 @@ test('transactional templates are branded, escaped, and have correct reply routi
   assert.equal(messages[7].attachments.length, 2)
   assert.match(messages[7].html, /Saturday, 10:00 - 11:00/)
   assert.match(messages[7].html, /Open in Google Maps/)
+  await exports.sendBookingCancellationNotice({ recipient: inquiry.email, name: inquiry.name, reference: 'CCOE-CANCEL1', service: 'Group session: Junior <Coaching>', amount: '22', paymentStatus: 'paid', refundStatus: 'pending', eventType: 'cancelled' }, 'notice-1')
+  await exports.sendBookingCancellationNotice({ recipient: inquiry.email, name: inquiry.name, reference: 'CCOE-CANCEL1', service: 'Group session: Junior <Coaching>', amount: '22', paymentStatus: 'refunded', refundStatus: 'succeeded', eventType: 'refund_succeeded' }, 'notice-2')
+  assert.match(messages[8].subject, /refund requested/i)
+  assert.match(messages[8].html, /Processing/)
+  assert.doesNotMatch(messages[8].html, /<script>|Junior <Coaching>/)
+  assert.match(messages[8].html, /Junior &lt;Coaching&gt;/)
+  assert.match(messages[9].subject, /refund is complete/i)
+  assert.match(messages[9].html, /Issued/)
 })

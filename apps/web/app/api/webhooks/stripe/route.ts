@@ -4,9 +4,10 @@ import { confirmGroupBooking } from '@/lib/services/confirm-group-booking';
 import { expireGroupCheckout } from '@/lib/services/session-checkout';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/services/supabase';
-import { verifyWebhookSignature } from '@/lib/services/stripe';
+import { getStripe, verifyWebhookSignature } from '@/lib/services/stripe';
 import { confirmBooking } from '@/lib/services/confirm-booking';
 import { dispatchBlockBookingNotifications, dispatchBookingNotifications } from '@/lib/services/booking-outbox';
+import { dispatchCancellationNotifications } from '@/lib/services/cancellation-outbox';
 
 export const maxDuration = 60;
 
@@ -68,12 +69,23 @@ export async function POST(request: NextRequest) {
         break;
       }
 
-      case 'charge.refunded': {
-        const charge = event.data.object as { payment_intent?: string };
-        if (!charge.payment_intent) break;
-
-        // Find booking by looking up the payment intent via Stripe
-        console.log('Refund processed for payment intent:', charge.payment_intent);
+      case 'refund.created':
+      case 'refund.updated':
+      case 'refund.failed': {
+        const refund = event.data.object as Stripe.Refund;
+        const bookingId = refund.metadata?.booking_id;
+        const kind = refund.metadata?.booking_kind;
+        if (!bookingId || (kind !== 'resource' && kind !== 'group')) break;
+        const table = kind === 'resource' ? 'bookings' : 'group_session_bookings';
+        // Fetch current state so delayed webhook delivery cannot undo a newer status.
+        const current = await getStripe().refunds.retrieve(refund.id);
+        const refundStatus = current.status === 'succeeded' ? 'succeeded' : current.status === 'failed' ? 'failed' : current.status === 'canceled' ? 'canceled' : 'pending';
+        const { error } = await supabaseAdmin.from(table).update({
+          refund_status: refundStatus,
+          payment_status: refundStatus === 'succeeded' ? 'refunded' : 'paid',
+        }).eq('id', bookingId).eq('stripe_refund_id', refund.id);
+        if (error) throw error;
+        await dispatchCancellationNotifications(5).catch(() => console.error('Refund email dispatch deferred'));
         break;
       }
 

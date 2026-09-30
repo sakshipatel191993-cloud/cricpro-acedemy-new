@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/services/supabase';
+import { isAdminRequest } from '@/lib/security/admin-auth';
+
+function londonDate(value: Date | string) {
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(value));
+  const part = (type: string) => parts.find(item => item.type === type)!.value;
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
 
 export async function GET(request: NextRequest) {
+  if (!await isAdminRequest(request)) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const period = searchParams.get('period') || '30'; // days
+    const period = '30';
 
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - parseInt(period));
@@ -28,18 +35,29 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Get revenue (confirmed bookings in period)
-    const { data: revenueData } = await supabaseAdmin
+    const { data: revenueData, error: revenueError } = await supabaseAdmin
       .from('bookings')
-      .select('amount')
+      .select('amount, created_at')
       .eq('status', 'confirmed')
       .eq('payment_status', 'paid')
       .gte('created_at', startDateStr);
 
-    const { data: groupRevenueData } = await supabaseAdmin
+    const { data: groupRevenueData, error: groupRevenueError } = await supabaseAdmin
       .from('group_session_bookings')
-      .select('amount')
+      .select('amount, created_at')
+      .eq('status', 'confirmed')
       .eq('payment_status', 'paid')
       .gte('created_at', startDateStr);
+
+    if (revenueError || groupRevenueError) throw new Error('Revenue data unavailable');
+    const dailyActivity = Array.from({ length: 7 }, (_, index) => ({
+      date: londonDate(new Date(Date.now() - (6 - index) * 86400000)), bookings: 0, revenue: 0,
+    }));
+    const dailyMap = new Map(dailyActivity.map(day => [day.date, day]));
+    for (const row of [...(revenueData ?? []), ...(groupRevenueData ?? [])]) {
+      const day = dailyMap.get(londonDate(row.created_at));
+      if (day) { day.bookings++; day.revenue += Number(row.amount || 0); }
+    }
 
     const bookingRevenue = revenueData?.reduce((sum, b) => sum + parseFloat(b.amount || '0'), 0) || 0;
     const groupRevenue = groupRevenueData?.reduce((sum, b) => sum + Number(b.amount || 0), 0) || 0;
@@ -47,16 +65,10 @@ export async function GET(request: NextRequest) {
     const totalRevenue = bookingRevenue + groupRevenue;
 
     // Get today's bookings
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
     const { data: todaysBookings } = await supabaseAdmin
       .from('bookings')
-      .select('*, resource:resources!bookings_resource_id_fkey(name)')
-      .gte('start_at', today.toISOString())
-      .lt('start_at', tomorrow.toISOString())
+      .select('id, booking_reference, customer_name, start_at, end_at, status, amount, resource:resources!bookings_resource_id_fkey(name)')
+      .eq('booking_date', londonDate(new Date()))
       .eq('status', 'confirmed')
       .order('start_at');
 
@@ -66,7 +78,7 @@ export async function GET(request: NextRequest) {
 
     const { data: upcomingBookings } = await supabaseAdmin
       .from('bookings')
-      .select('*, resource:resources!bookings_resource_id_fkey(name)')
+      .select('id, booking_reference, customer_name, start_at, end_at, status, amount, resource:resources!bookings_resource_id_fkey(name)')
       .gte('start_at', new Date().toISOString())
       .lt('start_at', nextWeek.toISOString())
       .eq('status', 'confirmed')
@@ -102,10 +114,11 @@ export async function GET(request: NextRequest) {
         totalRevenue: totalRevenue.toFixed(2),
         period
       },
+      dailyActivity,
       todaysBookings: todaysBookings || [],
       upcomingBookings: upcomingBookings || [],
       resourceUtilization
-    });
+    }, { headers: { 'Cache-Control': 'private, no-store' } });
   } catch (error) {
     console.error('Admin stats error:', error);
     return NextResponse.json(

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 interface Booking {
   id: string;
@@ -12,6 +13,8 @@ interface Booking {
   end_at: string;
   status: string;
   payment_status: string;
+  refund_status?: string | null;
+  block_booking_id?: string | null;
   amount: string;
   coupon_snapshot?: { code: string; discountMinor: number; subtotalMinor: number } | null;
   resource: { name: string; type: string };
@@ -26,6 +29,7 @@ export default function AdminBookingsPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const totalPages = Math.ceil(total / 20);
 
   useEffect(() => {
@@ -52,36 +56,21 @@ export default function AdminBookingsPage() {
     }
   }
 
-  async function updateStatus(id: string, newStatus: string) {
+  async function cancelBooking(booking: Booking, refund: boolean) {
+    const message = refund
+      ? `Cancel ${booking.booking_reference} and request a full £${booking.amount} refund to the original payment method?`
+      : `Cancel ${booking.booking_reference}${booking.payment_status === 'paid' ? ' without refunding the payment' : ''}?`;
+    if (!window.confirm(message)) return;
+    setBusyId(booking.id);
     try {
-      const res = await fetch('/api/admin/bookings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, status: newStatus })
-      });
+      const res = await fetch('/api/admin/cancel-booking', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'resource', id: booking.id, refund }) });
       const data = await res.json();
-      if (data.success) {
-        setBookings(bookings.map(b => b.id === id ? { ...b, status: newStatus } : b));
-      }
-    } catch (error) {
-      console.error('Failed to update booking:', error);
-    }
-  }
-
-  async function updatePaymentStatus(id: string, newStatus: string) {
-    try {
-      const res = await fetch('/api/admin/bookings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, payment_status: newStatus })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setBookings(bookings.map(b => b.id === id ? { ...b, payment_status: newStatus } : b));
-      }
-    } catch (error) {
-      console.error('Failed to update payment status:', error);
-    }
+      if (!res.ok || !data.success) throw new Error(data.error || 'Unable to cancel booking');
+      if (refund && ['failed', 'canceled'].includes(data.booking.refund_status)) toast.error(`Booking cancelled, but the refund ${data.booking.refund_status}. Review it in Stripe.`);
+      else toast.success(refund ? data.booking.refund_status === 'succeeded' ? 'Booking cancelled and refund succeeded' : 'Booking cancelled; refund is processing' : 'Booking cancelled');
+      await fetchBookings();
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Unable to cancel booking'); }
+    finally { setBusyId(null); }
   }
 
   const statusColors: Record<string, string> = {
@@ -102,12 +91,12 @@ export default function AdminBookingsPage() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-foreground">Bookings</h1>
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="border rounded-lg px-4 py-2 bg-background text-foreground"
+          className="min-h-11 w-full rounded-lg border bg-background px-4 py-2 text-foreground sm:w-auto"
         >
           <option value="">All Statuses</option>
           <option value="pending_payment">Pending Payment</option>
@@ -128,7 +117,19 @@ export default function AdminBookingsPage() {
         </div>
       ) : (
         <>
-          <div className="bg-card rounded-lg shadow overflow-hidden">
+          <div className="space-y-3 md:hidden">
+            {bookings.map(booking => <article key={booking.id} className="min-w-0 rounded-xl border border-border bg-card p-4">
+              <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate font-semibold">{booking.customer_name}</p><p className="mt-1 font-mono text-xs text-muted-foreground">{booking.booking_reference}</p></div><span className="shrink-0 font-semibold tabular-nums">£{booking.amount}</span></div>
+              <p className="mt-3 text-sm text-muted-foreground">{booking.resource?.name} · {new Date(booking.start_at).toLocaleDateString('en-GB', { timeZone: 'Europe/London' })}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{new Date(booking.start_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/London' })}–{new Date(booking.end_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/London' })}</p>
+              {booking.coupon_snapshot?.code && <p className="mt-2 text-xs text-muted-foreground">{booking.coupon_snapshot.code} · saved £{(booking.coupon_snapshot.discountMinor / 100).toFixed(2)}</p>}
+              <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4"><div><p className="text-xs text-muted-foreground">Booking</p><p className="mt-3 text-sm font-medium capitalize">{booking.status.replaceAll('_', ' ')}</p></div><div><p className="text-xs text-muted-foreground">Payment</p><p className="mt-3 text-sm font-medium capitalize">{booking.refund_status ? `Refund ${booking.refund_status}` : booking.payment_status}</p></div></div>
+              {!booking.block_booking_id && (booking.status === 'confirmed' || booking.status === 'completed' || (booking.status === 'cancelled' && (booking.payment_status === 'paid' || booking.refund_status))) && <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold"><button disabled={busyId === booking.id || booking.status === 'cancelled'} onClick={() => cancelBooking(booking, false)} className="min-h-11 text-destructive disabled:opacity-50">Cancel</button>{(booking.payment_status === 'paid' || booking.refund_status) && <button disabled={busyId === booking.id} onClick={() => cancelBooking(booking, true)} className="min-h-11 text-primary disabled:opacity-50">{booking.refund_status ? 'Refresh refund' : 'Cancel & refund'}</button>}</div>}
+              {booking.block_booking_id && <p className="mt-3 text-xs text-muted-foreground">Part of a block booking. Contact support to change the whole block.</p>}
+              <button onClick={() => { const notes = prompt('Add notes:', booking.notes || ''); if (notes !== null) fetch('/api/admin/bookings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: booking.id, notes }) }); }} className="mt-3 min-h-11 text-sm font-semibold text-primary">Edit notes</button>
+            </article>)}
+          </div>
+          <div className="hidden overflow-hidden rounded-lg bg-card shadow md:block">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-border">
                 <thead className="bg-muted">
@@ -161,24 +162,17 @@ export default function AdminBookingsPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-foreground">£{booking.amount}{booking.coupon_snapshot?.code && <p className="text-xs text-muted-foreground">{booking.coupon_snapshot.code} · saved £{(booking.coupon_snapshot.discountMinor / 100).toFixed(2)} from £{(booking.coupon_snapshot.subtotalMinor / 100).toFixed(2)}</p>}</td>
                       <td className="px-4 py-3">
-                        <select
-                          value={booking.status}
-                          onChange={(e) => updateStatus(booking.id, e.target.value)}
-                          className={`text-xs px-2 py-1 rounded border ${statusColors[booking.status] || 'bg-muted text-muted-foreground'}`}
-                        >
-                          <option value="pending_payment">Pending</option>
-                          <option value="confirmed">Confirmed</option>
-                          <option value="cancelled">Cancelled</option>
-                          <option value="completed">Completed</option>
-                          <option value="expired">Expired</option>
-                        </select>
+                        <span className={`text-xs px-2 py-1 rounded border ${statusColors[booking.status] || 'bg-muted text-muted-foreground'}`}>{booking.status.replaceAll('_', ' ')}</span>
                       </td>
                       <td className="px-4 py-3">
                         <span className={`text-xs px-2 py-1 rounded ${paymentColors[booking.payment_status] || 'bg-muted text-muted-foreground'}`}>
-                          {booking.payment_status}
+                          {booking.refund_status ? `Refund ${booking.refund_status}` : booking.payment_status}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm">
+                        {!booking.block_booking_id && (booking.status === 'confirmed' || booking.status === 'completed') && <><button disabled={busyId === booking.id} onClick={() => cancelBooking(booking, false)} className="mr-3 text-destructive hover:underline disabled:opacity-50">Cancel</button>{booking.payment_status === 'paid' && <button disabled={busyId === booking.id} onClick={() => cancelBooking(booking, true)} className="mr-3 text-primary hover:underline disabled:opacity-50">Cancel & refund</button>}</>}
+                        {!booking.block_booking_id && booking.status === 'cancelled' && (booking.payment_status === 'paid' || booking.refund_status) && <button disabled={busyId === booking.id} onClick={() => cancelBooking(booking, true)} className="mr-3 text-primary hover:underline disabled:opacity-50">{booking.refund_status ? 'Refresh refund' : 'Refund payment'}</button>}
+                        {booking.block_booking_id && <span className="mr-3 text-xs text-muted-foreground">Block booking</span>}
                         <button
                           onClick={() => {
                             const notes = prompt('Add notes:', booking.notes || '');
